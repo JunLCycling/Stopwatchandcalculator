@@ -370,7 +370,7 @@
     }
 
     .sw-frozen-lap-time {
-      font-size: 62px;
+      font-size: 68px;
       font-weight: 300;
       color: #ffffff;
       font-variant-numeric: tabular-nums;
@@ -662,7 +662,7 @@
         </div>
       </div>
 
-      <!-- 3. 中間左右分割：左邊凍結上個分段秒數(小數第一位)＋全程總計 ／ 右邊分段紀錄盒 -->
+      <!-- 3. 中間左右分割：左邊凍結上個分段秒數(個位數+小數第一位)＋全程總計 ／ 右邊分段紀錄盒 -->
       <div class="sw-main-split">
         <div class="sw-left-col">
           <div class="sw-frozen-lap-wrap">
@@ -748,7 +748,7 @@
     const sprocketList  = Array.from({ length: 20 - 10 + 1 }, (_, i) => 10 + i); // 10 ~ 20
     const rpmList       = Array.from({ length: 160 - 40 + 1 }, (_, i) => 40 + i); // 40 ~ 160
     const distanceList  = [0.2, 0.25, 0.333, 0.5, 0.666, 1, 1.5, 2, 3, 4, 5, 7.5, 10, 15, 16, 20, 25, 30, 50];
-    const swLapDistList = [125, 166, 250, 333]; // 碼錶分圈距離 (m)
+    const swLapDistList = [125, 166, 250, 333]; // 碼錶分圈距離設定顯示值 (m)
 
     const tireSpecs = [
       { name: "700 X 18", diameterMM: 658.0 },
@@ -782,7 +782,7 @@
     let selectedTireIndex = Number(localStorage.getItem("selectedTireIndex") ?? 1);
     if (selectedTireIndex < 0 || selectedTireIndex >= tireSpecs.length) selectedTireIndex = 1;
 
-    // 第二頁（迴轉碼錶）設定狀態（含獨立或預設同步的輪胎規格）
+    // 第二頁（迴轉碼錶）設定狀態
     let swLapDist   = loadSavedValue("swLapDist", swLapDistList, 250);
     let swChainring = loadSavedValue("swChainring", chainringList, 50);
     let swSprocket  = loadSavedValue("swSprocket", sprocketList, 13);
@@ -1011,15 +1011,29 @@
       return sec.toFixed(2).padStart(5, "0");
     }
 
-    // 依據碼錶所選輪胎外徑(mm)、前齒、後齒、距離(m)與秒數(s)，計算速度與迴轉
-    function calcSwMetrics(distanceMeters, timeSeconds) {
+    // 左側大字體專用格式化：只取個位數與小數第一位（例如 10.68 -> 0.6，15.48 -> 5.4）
+    function formatShortLap(sec) {
+      const centi = Math.round(sec * 100); // 先以百分位秒數對齊右側顯示值 (如 10.68 -> 1068)
+      const onesAndTenths = Math.floor((centi % 1000) / 10); // 取個位數與十分位 (1068 % 1000 = 68 -> 6)
+      return (onesAndTenths / 10).toFixed(1);
+    }
+
+    // 將畫面設定的分圈距離轉換為實際計算距離（333 -> 333.3333，166 -> 166.6666）
+    function getActualLapDist(nominalDist) {
+      if (nominalDist === 333) return 333.3333;
+      if (nominalDist === 166) return 166.6666;
+      return nominalDist;
+    }
+
+    // 依據實際計算距離(m)、碼錶輪胎外徑(mm)、前齒、後齒與秒數(s)，計算速度與迴轉
+    function calcSwMetrics(actualDistanceMeters, timeSeconds) {
       if (timeSeconds <= 0) return { speedKmh: 0, rpm: 0 };
       const swWheelCircumferenceMeters = (tireSpecs[swTireIndex].diameterMM * Math.PI) / 1000.0;
       const gearRatio = swChainring / swSprocket;
       const developmentMeters = gearRatio * swWheelCircumferenceMeters;
 
-      // 踩踏圈數 = 距離(m) ÷ 踩踏一圈發展米數(m)
-      const pedalRevolutions = distanceMeters / developmentMeters;
+      // 踩踏圈數 = 實際距離(m) ÷ 踩踏一圈發展米數(m)
+      const pedalRevolutions = actualDistanceMeters / developmentMeters;
       // 迴轉數(RPM) = (踩踏圈數 ÷ 秒數) × 60
       const rpm = (pedalRevolutions / timeSeconds) * 60.0;
       // 速度(km/h) = 齒比 × 輪胎周長(m) × RPM × 60 ÷ 1000
@@ -1034,10 +1048,11 @@
         return;
       }
 
+      // 右側分段秒數完整呈現至小數點後兩位（如 10.68秒）
       swLapsContainer.innerHTML = recordedLaps.map((lap) => `
         <div class="sw-lap-item">
           <div class="sw-lap-dist">${lap.cumDist}m (分段 ${lap.lapDist}m)</div>
-          <div class="sw-lap-detail">分段秒數: ${lap.lapSec.toFixed(1)}秒</div>
+          <div class="sw-lap-detail">分段秒數: ${lap.lapSec.toFixed(2)}秒</div>
           <div class="sw-lap-detail">速度: ${lap.speedKmh.toFixed(1)} km/h</div>
           <div class="sw-lap-detail">迴轉: ${lap.rpm.toFixed(1)} RPM</div>
         </div>
@@ -1052,19 +1067,21 @@
 
       const lapNumber = recordedLaps.length + 1;
       const cumDist = lapNumber * swLapDist;
-      const { speedKmh, rpm } = calcSwMetrics(swLapDist, lapSec);
+      const actualDist = getActualLapDist(swLapDist);
+      const { speedKmh, rpm } = calcSwMetrics(actualDist, lapSec);
 
       recordedLaps.push({
         lapNumber,
         lapDist: swLapDist,
+        actualDist,
         cumDist,
         lapSec,
         speedKmh,
         rpm
       });
 
-      // 左側大字體凍結顯示剛按出來的這個分段秒數（僅顯示至小數點後第一位，例如 5.4 或 14.8）
-      swFrozenLapTime.textContent = lapSec.toFixed(1);
+      // 左側大字體凍結顯示：僅呈現個位數與小數第一位（如 10.68 -> 0.6）
+      swFrozenLapTime.textContent = formatShortLap(lapSec);
       swFrozenLapNum.textContent = isFinalStop ? `Lap ${lapNumber} (終點)` : `Lap ${lapNumber}`;
 
       lapStartMs = nowMs;
@@ -1077,7 +1094,6 @@
       const elapsedSec = (now - startTimeMs) / 1000.0;
       const currentLapSec = (now - lapStartMs) / 1000.0;
 
-      // 上方並排同時更新「累計時間」與目前這一圈的「分段時間」
       swElapsedDisplay.textContent = formatStopwatchSeconds(elapsedSec);
       swRunningLapDisplay.textContent = formatStopwatchSeconds(currentLapSec);
       swRunningLapLabel.textContent = `分段時間 (Lap ${recordedLaps.length + 1})`;
@@ -1116,11 +1132,12 @@
         swRunningLapDisplay.textContent = formatStopwatchSeconds(finalLapSec);
         swRunningLapLabel.textContent = `分段時間 (Lap ${recordedLaps.length})`;
 
-        // 計算全程總距離、全程秒數、全程平均速度與全程平均迴轉
-        const totalDistanceMeters = recordedLaps.length * swLapDist;
-        const totalMetrics = calcSwMetrics(totalDistanceMeters, totalElapsedSec);
+        // 計算全程總距離（以實際距離如 333.3333 或 166.6666 累加計算速度與迴轉）
+        const totalNominalDistance = recordedLaps.length * swLapDist;
+        const totalActualDistance = recordedLaps.reduce((sum, item) => sum + item.actualDist, 0);
+        const totalMetrics = calcSwMetrics(totalActualDistance, totalElapsedSec);
 
-        swTotalTitle.textContent = `🏁 全程總計 (${totalDistanceMeters}m / ${recordedLaps.length}圈)`;
+        swTotalTitle.textContent = `🏁 全程總計 (${totalNominalDistance}m / ${recordedLaps.length}圈)`;
         swTotalTime.textContent  = `${formatStopwatchSeconds(totalElapsedSec)}秒`;
         swTotalSpeed.textContent = `${totalMetrics.speedKmh.toFixed(1)} km/h`;
         swTotalRpm.textContent   = `${totalMetrics.rpm.toFixed(1)} RPM`;
