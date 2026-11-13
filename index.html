@@ -15,7 +15,7 @@
     :root {
       --item-height: 34px;
       --visible-items: 7;
-      --wheel-height: calc(var(--item-height) * var(--visible-items)); /* 238px */
+      --wheel-height: calc(var(--item-height) * var(--visible-items)); /* 直向 238px */
       --pad-height: calc(var(--item-height) * 3);
       --cyan: #32ade6;
       --cyan-dim: rgba(50, 173, 230, 0.85);
@@ -60,7 +60,8 @@
       display: grid;
       grid-template-columns: 64px 1fr 64px;
       align-items: center;
-      min-height: 36px;
+      min-height: 34px;
+      flex-shrink: 0;
     }
 
     .seg-control {
@@ -70,6 +71,9 @@
       border-radius: 9px;
       padding: 3px;
       border: 1px solid rgba(255, 255, 255, 0.15);
+      max-width: 320px;
+      width: 100%;
+      justify-self: center;
     }
 
     .seg-btn {
@@ -127,6 +131,12 @@
       gap: 14px;
     }
 
+    .calc-right-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
     .wheels-section {
       display: flex;
       flex-direction: column;
@@ -142,31 +152,57 @@
       color: #ffffff;
     }
 
-    .wheels-wrapper {
+    .wheels-wrapper,
+    .single-wheel-wrapper,
+    .quad-wheels-wrapper {
       position: relative;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
       height: var(--wheel-height);
       background: #000000;
       overflow: hidden;
-      -webkit-mask-image: linear-gradient(
-        to bottom,
-        rgba(0,0,0,0.15) 0%,
-        rgba(0,0,0,0.65) 22%,
-        rgba(0,0,0,1) 42%,
-        rgba(0,0,0,1) 58%,
-        rgba(0,0,0,0.65) 78%,
-        rgba(0,0,0,0.15) 100%
-      );
-      mask-image: linear-gradient(
-        to bottom,
-        rgba(0,0,0,0.15) 0%,
-        rgba(0,0,0,0.65) 22%,
-        rgba(0,0,0,1) 42%,
-        rgba(0,0,0,1) 58%,
-        rgba(0,0,0,0.65) 78%,
-        rgba(0,0,0,0.15) 100%
-      );
+    }
+
+    .wheels-wrapper {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    /* 改用上下漸層覆蓋層取代 mask-image，避免新機型 WebKit 渲染消失問題 */
+    .wheels-wrapper::before,
+    .single-wheel-wrapper::before,
+    .quad-wheels-wrapper::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--pad-height);
+      background: linear-gradient(to bottom, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.25) 100%);
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .wheels-wrapper::after,
+    .single-wheel-wrapper::after,
+    .quad-wheels-wrapper::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: var(--pad-height);
+      background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.25) 100%);
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .single-wheel-wrapper::before,
+    .quad-wheels-wrapper::before {
+      background: linear-gradient(to bottom, rgba(28,28,30,0.9) 0%, rgba(28,28,30,0.2) 100%);
+    }
+
+    .single-wheel-wrapper::after,
+    .quad-wheels-wrapper::after {
+      background: linear-gradient(to top, rgba(28,28,30,0.9) 0%, rgba(28,28,30,0.2) 100%);
     }
 
     .wheel-highlight {
@@ -189,7 +225,10 @@
       scroll-snap-type: y mandatory;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
+      position: relative;
       z-index: 2;
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
     }
 
     .wheel-column::-webkit-scrollbar {
@@ -273,7 +312,6 @@
       justify-content: space-between;
     }
 
-    /* 1. 上方中間：前齒 x 後齒 · 輪胎規格 (單圈距離) */
     .sw-gear-header {
       text-align: center;
       padding: 2px 0;
@@ -293,7 +331,6 @@
       margin-left: 6px;
     }
 
-    /* 2. 第二排：累計時間 + 分段時間 並排 */
     .sw-timers-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -346,7 +383,6 @@
       letter-spacing: 0.5px;
     }
 
-    /* 3. 中間左右分割區（左：凍結上圈秒數與全程總計 ／ 右：分段數據盒） */
     .sw-main-split {
       display: grid;
       grid-template-columns: 1fr 1.18fr;
@@ -384,7 +420,6 @@
       margin-top: 6px;
     }
 
-    /* 停止時顯示的全程總計卡片 */
     .sw-total-summary {
       width: 100%;
       background: rgba(48, 209, 88, 0.12);
@@ -418,7 +453,6 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* 右邊分段數據外框盒 */
     .sw-right-box {
       border: 2.5px solid #8e8e93;
       border-radius: 8px;
@@ -460,7 +494,6 @@
       line-height: 1.5;
     }
 
-    /* 4. 最下方：左紅停止鍵、右灰分段鍵 */
     .sw-controls {
       display: flex;
       justify-content: center;
@@ -488,13 +521,8 @@
       transform: scale(0.94);
     }
 
-    .btn-red {
-      background-color: var(--red);
-    }
-
-    .btn-grey {
-      background-color: var(--grey-btn);
-    }
+    .btn-red { background-color: var(--red); }
+    .btn-grey { background-color: var(--grey-btn); }
 
     /* ==========================================
        彈出式選單共用樣式 (Sheet Modal)
@@ -556,15 +584,11 @@
       padding: 4px 8px;
     }
 
-    .single-wheel-wrapper {
-      position: relative;
-      height: var(--wheel-height);
-      overflow: hidden;
-      -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,1) 40%, rgba(0,0,0,1) 60%, rgba(0,0,0,0.15) 100%);
-      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,1) 40%, rgba(0,0,0,1) 60%, rgba(0,0,0,0.15) 100%);
+    .single-wheel-wrapper,
+    .quad-wheels-wrapper {
+      background: #1c1c1e;
     }
 
-    /* 碼錶設定四欄滾輪（分圈距離、前齒、後齒、輪胎規格） */
     .quad-wheel-headers {
       display: grid;
       grid-template-columns: 0.9fr 0.8fr 0.8fr 1.3fr;
@@ -576,13 +600,180 @@
     }
 
     .quad-wheels-wrapper {
-      position: relative;
       display: grid;
       grid-template-columns: 0.9fr 0.8fr 0.8fr 1.3fr;
-      height: var(--wheel-height);
-      overflow: hidden;
-      -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,1) 40%, rgba(0,0,0,1) 60%, rgba(0,0,0,0.15) 100%);
-      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,1) 40%, rgba(0,0,0,1) 60%, rgba(0,0,0,0.15) 100%);
+    }
+
+    /* ==========================================
+       📱 手機橫向模式 (Landscape) 全螢幕自適應排版
+       ========================================== */
+    @media (orientation: landscape) and (max-height: 600px) {
+      :root {
+        --visible-items: 5;
+        --wheel-height: calc(var(--item-height) * 5); /* 橫向縮減為 170px */
+        --pad-height: calc(var(--item-height) * 2);
+      }
+
+      .app-container {
+        max-width: 100%;
+        padding: calc(env(safe-area-inset-top, 4px) + 4px)
+                 calc(env(safe-area-inset-right, 16px) + 12px)
+                 calc(env(safe-area-inset-bottom, 4px) + 6px)
+                 calc(env(safe-area-inset-left, 16px) + 12px);
+        gap: 6px;
+      }
+
+      .top-bar {
+        min-height: 30px;
+      }
+
+      .seg-btn {
+        padding: 4px 10px;
+        font-size: 13px;
+      }
+
+      /* 第一頁橫向：左邊四滾輪、右邊輪胎設定與計算結果 */
+      #page-calc.active {
+        display: grid;
+        grid-template-columns: 1.15fr 1fr;
+        gap: 16px;
+        align-items: center;
+      }
+
+      .calc-right-panel {
+        gap: 10px;
+      }
+
+      .spec-button {
+        padding: 10px 16px;
+      }
+
+      .spec-text {
+        font-size: 17px;
+      }
+
+      .results-card {
+        padding: 14px 16px;
+        gap: 10px;
+        font-size: 18px;
+      }
+
+      /* 第二頁橫向：左欄時間與凍結秒數、中欄紀錄盒、右欄垂直雙按鍵 */
+      #page-stopwatch.active {
+        display: grid;
+        grid-template-columns: 1.25fr 1.1fr auto;
+        grid-template-rows: auto auto 1fr;
+        grid-template-areas:
+          "header timers controls"
+          "frozen laps   controls"
+          "frozen laps   controls";
+        gap: 6px 12px;
+        align-items: stretch;
+      }
+
+      .sw-gear-header {
+        grid-area: header;
+        text-align: left;
+        align-self: center;
+        padding: 0;
+      }
+
+      .sw-gear-title {
+        font-size: 17px;
+      }
+
+      .sw-timers-row {
+        grid-area: timers;
+        padding: 4px 8px;
+        gap: 8px;
+      }
+
+      .sw-timer-label {
+        font-size: 12px;
+      }
+
+      .sw-elapsed-box,
+      .sw-lap-running-box {
+        font-size: 21px;
+        padding: 2px 8px;
+      }
+
+      .sw-main-split {
+        display: contents;
+      }
+
+      .sw-left-col {
+        grid-area: frozen;
+        flex-direction: row;
+        justify-content: space-around;
+        align-items: center;
+        background: #111113;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 10px;
+        padding: 6px 10px;
+        gap: 8px;
+      }
+
+      .sw-frozen-lap-time {
+        font-size: 50px;
+      }
+
+      .sw-frozen-lap-label {
+        font-size: 14px;
+        margin-top: 2px;
+      }
+
+      .sw-total-summary {
+        max-width: 195px;
+        padding: 6px 8px;
+        gap: 2px;
+      }
+
+      .sw-total-title {
+        font-size: 12px;
+      }
+
+      .sw-total-line {
+        font-size: 12px;
+      }
+
+      .sw-right-box {
+        grid-area: laps;
+        height: 100%;
+      }
+
+      .sw-lap-item {
+        padding: 6px 2px;
+      }
+
+      .sw-lap-dist {
+        font-size: 14px;
+        margin-bottom: 2px;
+      }
+
+      .sw-lap-detail {
+        font-size: 12.5px;
+        line-height: 1.35;
+      }
+
+      .sw-controls {
+        grid-area: controls;
+        flex-direction: column;
+        justify-content: center;
+        gap: 14px;
+        padding: 0 2px;
+      }
+
+      .sw-circle-btn {
+        width: 72px;
+        height: 72px;
+        font-size: 18px;
+      }
+
+      .modal-sheet {
+        max-width: 600px;
+        padding: 10px 12px calc(env(safe-area-inset-bottom, 8px) + 8px);
+      }
     }
   </style>
 </head>
@@ -619,23 +810,25 @@
         </div>
       </div>
 
-      <button id="open-tire-btn" class="spec-button" type="button">
-        <span id="tire-label" class="spec-text">輪胎規格: 700 X 20</span>
-        <span class="spec-chevron">&rsaquo;</span>
-      </button>
+      <div class="calc-right-panel">
+        <button id="open-tire-btn" class="spec-button" type="button">
+          <span id="tire-label" class="spec-text">輪胎規格: 700 X 20</span>
+          <span class="spec-chevron">&rsaquo;</span>
+        </button>
 
-      <div class="results-card">
-        <div class="result-row">
-          <span class="label-cyan">齒比 (吋):</span>
-          <span id="res-gear-inches" class="value-cyan">117.64 吋</span>
-        </div>
-        <div class="result-row">
-          <span class="label-cyan">速度:</span>
-          <span id="res-speed" class="value-cyan">48.9 KM/H</span>
-        </div>
-        <div class="result-row row-green">
-          <span id="res-time-label">騎乘時間 (5 KM):</span>
-          <span id="res-time-value">6分 07.85秒</span>
+        <div class="results-card">
+          <div class="result-row">
+            <span class="label-cyan">齒比 (吋):</span>
+            <span id="res-gear-inches" class="value-cyan">117.64 吋</span>
+          </div>
+          <div class="result-row">
+            <span class="label-cyan">速度:</span>
+            <span id="res-speed" class="value-cyan">48.9 KM/H</span>
+          </div>
+          <div class="result-row row-green">
+            <span id="res-time-label">騎乘時間 (5 KM):</span>
+            <span id="res-time-value">6分 07.85秒</span>
+          </div>
         </div>
       </div>
     </div>
@@ -644,13 +837,13 @@
          頁面 2：迴轉碼錶 (Solo TT Stopwatch)
          ========================================== -->
     <div id="page-stopwatch" class="page-view">
-      <!-- 1. 上方中間：所選的前齒、後齒、輪胎規格與單圈距離 -->
+      <!-- 1. 上方：所選的前齒、後齒、輪胎規格與單圈距離 -->
       <div class="sw-gear-header">
         <span id="sw-gear-display" class="sw-gear-title">50t x 13t · 700 X 20</span>
         <span id="sw-dist-badge" class="sw-gear-sub">(250m)</span>
       </div>
 
-      <!-- 2. 第二排：累計時間 與 分段時間 並排顯示 -->
+      <!-- 2. 累計時間 與 分段時間 並排顯示 -->
       <div class="sw-timers-row">
         <div class="sw-timer-block">
           <div class="sw-timer-label">累計時間</div>
@@ -693,7 +886,7 @@
         </div>
       </div>
 
-      <!-- 4. 最下方：左紅停止鍵、右灰分段鍵 -->
+      <!-- 4. 控制鍵：直向在底部水平排列，橫向在右側垂直排列 -->
       <div class="sw-controls">
         <button id="sw-start-stop-btn" class="sw-circle-btn btn-red" type="button">開始</button>
         <button id="sw-lap-reset-btn" class="sw-circle-btn btn-grey" type="button">分段</button>
@@ -789,6 +982,20 @@
     let swTireIndex = Number(localStorage.getItem("swTireIndex") ?? selectedTireIndex);
     if (swTireIndex < 0 || swTireIndex >= tireSpecs.length) swTireIndex = 1;
 
+    // 紀錄所有滾輪實例，供螢幕旋轉時重新對齊定位
+    const wheelRegistry = [];
+
+    function syncAllWheelsScroll() {
+      requestAnimationFrame(() => {
+        wheelRegistry.forEach(w => {
+          w.container.scrollTop = w.getActiveIdx() * ITEM_HEIGHT;
+        });
+      });
+    }
+
+    window.addEventListener("resize", syncAllWheelsScroll);
+    window.addEventListener("orientationchange", () => setTimeout(syncAllWheelsScroll, 120));
+
     // ==========================================
     // 2. 頁面頂部切換控制
     // ==========================================
@@ -804,6 +1011,7 @@
       pageCalc.classList.add("active");
       pageSw.classList.remove("active");
       openSwSettingsBtn.classList.remove("visible");
+      syncAllWheelsScroll();
     });
 
     tabSwBtn.addEventListener("click", () => {
@@ -876,11 +1084,12 @@
       bottomSpacer.className = "wheel-spacer";
       container.appendChild(bottomSpacer);
 
+      let activeIdx = Math.max(0, initialIndex);
+
       requestAnimationFrame(() => {
-        container.scrollTop = initialIndex * ITEM_HEIGHT;
+        container.scrollTop = activeIdx * ITEM_HEIGHT;
       });
 
-      let activeIdx = initialIndex;
       container.addEventListener("scroll", () => {
         const rawIdx = Math.round(container.scrollTop / ITEM_HEIGHT);
         const clampedIdx = Math.max(0, Math.min(items.length - 1, rawIdx));
@@ -891,6 +1100,11 @@
           onSelect(items[clampedIdx], clampedIdx);
         }
       }, { passive: true });
+
+      wheelRegistry.push({
+        container,
+        getActiveIdx: () => activeIdx
+      });
     }
 
     // 初始化第一頁滾輪
@@ -995,7 +1209,7 @@
     document.getElementById("close-sw-settings-btn").addEventListener("click", () => swSettingsModal.classList.remove("open"));
     swSettingsModal.addEventListener("click", (e) => { if (e.target === swSettingsModal) swSettingsModal.classList.remove("open"); });
 
-    // 碼錶狀態機： "IDLE" (歸零待命) | "RUNNING" (計時中) | "STOPPED" (已停止結算)
+    // 碼錶狀態機： "IDLE" | "RUNNING" | "STOPPED"
     let swState = "IDLE";
     let startTimeMs = 0;
     let lapStartMs = 0;
@@ -1013,8 +1227,8 @@
 
     // 左側大字體專用格式化：只取個位數與小數第一位（例如 10.68 -> 0.6，15.48 -> 5.4）
     function formatShortLap(sec) {
-      const centi = Math.round(sec * 100); // 先以百分位秒數對齊右側顯示值 (如 10.68 -> 1068)
-      const onesAndTenths = Math.floor((centi % 1000) / 10); // 取個位數與十分位 (1068 % 1000 = 68 -> 6)
+      const centi = Math.round(sec * 100);
+      const onesAndTenths = Math.floor((centi % 1000) / 10);
       return (onesAndTenths / 10).toFixed(1);
     }
 
@@ -1025,18 +1239,14 @@
       return nominalDist;
     }
 
-    // 依據實際計算距離(m)、碼錶輪胎外徑(mm)、前齒、後齒與秒數(s)，計算速度與迴轉
     function calcSwMetrics(actualDistanceMeters, timeSeconds) {
       if (timeSeconds <= 0) return { speedKmh: 0, rpm: 0 };
       const swWheelCircumferenceMeters = (tireSpecs[swTireIndex].diameterMM * Math.PI) / 1000.0;
       const gearRatio = swChainring / swSprocket;
       const developmentMeters = gearRatio * swWheelCircumferenceMeters;
 
-      // 踩踏圈數 = 實際距離(m) ÷ 踩踏一圈發展米數(m)
       const pedalRevolutions = actualDistanceMeters / developmentMeters;
-      // 迴轉數(RPM) = (踩踏圈數 ÷ 秒數) × 60
       const rpm = (pedalRevolutions / timeSeconds) * 60.0;
-      // 速度(km/h) = 齒比 × 輪胎周長(m) × RPM × 60 ÷ 1000
       const speedKmh = (developmentMeters * rpm * 60.0) / 1000.0;
 
       return { speedKmh, rpm };
@@ -1048,7 +1258,6 @@
         return;
       }
 
-      // 右側分段秒數完整呈現至小數點後兩位（如 10.68秒）
       swLapsContainer.innerHTML = recordedLaps.map((lap) => `
         <div class="sw-lap-item">
           <div class="sw-lap-dist">${lap.cumDist}m (分段 ${lap.lapDist}m)</div>
@@ -1080,7 +1289,6 @@
         rpm
       });
 
-      // 左側大字體凍結顯示：僅呈現個位數與小數第一位（如 10.68 -> 0.6）
       swFrozenLapTime.textContent = formatShortLap(lapSec);
       swFrozenLapNum.textContent = isFinalStop ? `Lap ${lapNumber} (終點)` : `Lap ${lapNumber}`;
 
@@ -1115,7 +1323,6 @@
         swTotalCard.classList.remove("visible");
         rafId = requestAnimationFrame(tick);
       } else if (swState === "RUNNING") {
-        // 模式 A：按下停止時，自動把最後這一段算作最後一圈，並結算全程數據
         const now = performance.now();
         cancelAnimationFrame(rafId);
         swState = "STOPPED";
@@ -1124,15 +1331,12 @@
         const totalElapsedSec = (now - startTimeMs) / 1000.0;
         const finalLapSec = (now - lapStartMs) / 1000.0;
 
-        // 記錄最後一圈並凍結顯示在左邊大字體
         recordNewLap(now, true);
 
-        // 固定上方累計時間與最後分段時間
         swElapsedDisplay.textContent = formatStopwatchSeconds(totalElapsedSec);
         swRunningLapDisplay.textContent = formatStopwatchSeconds(finalLapSec);
         swRunningLapLabel.textContent = `分段時間 (Lap ${recordedLaps.length})`;
 
-        // 計算全程總距離（以實際距離如 333.3333 或 166.6666 累加計算速度與迴轉）
         const totalNominalDistance = recordedLaps.length * swLapDist;
         const totalActualDistance = recordedLaps.reduce((sum, item) => sum + item.actualDist, 0);
         const totalMetrics = calcSwMetrics(totalActualDistance, totalElapsedSec);
