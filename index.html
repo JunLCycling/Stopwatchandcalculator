@@ -524,10 +524,10 @@
     }
 
     .sw-btn-key-hint {
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 700;
       opacity: 0.78;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
     }
 
     .sw-circle-btn:active,
@@ -868,7 +868,7 @@
           <div id="sw-elapsed-display" class="sw-elapsed-box">00.00</div>
         </div>
         <div class="sw-timer-block">
-          <div id="sw-running-lap-label" class="sw-timer-label">分段時間 (Lap 1)</div>
+          <div class="sw-timer-label" id="sw-running-lap-label">分段時間 (Lap 1)</div>
           <div id="sw-running-lap-display" class="sw-lap-running-box">00.00</div>
         </div>
       </div>
@@ -900,19 +900,19 @@
         </div>
 
         <div id="sw-laps-container" class="sw-right-box">
-          <div class="sw-empty-hint">尚無分段紀錄<br>按「開始 (S)」後按「分段 (D)」</div>
+          <div class="sw-empty-hint">尚無分段紀錄<br>按「開始」或滑鼠側鍵4啟動</div>
         </div>
       </div>
 
-      <!-- 4. 控制鍵：支援觸控與藍牙鍵盤/滑鼠宏 (S = 開始/停止, D = 分段/歸零) -->
+      <!-- 4. 控制鍵：支援觸控、鍵盤 (S / D) 與滑鼠原始側鍵 (Button 4 / Button 5) -->
       <div class="sw-controls">
         <button id="sw-start-stop-btn" class="sw-circle-btn btn-red" type="button">
           <span id="sw-start-stop-text" class="sw-btn-main-text">開始</span>
-          <span class="sw-btn-key-hint">[S]</span>
+          <span class="sw-btn-key-hint">[S / 側鍵4]</span>
         </button>
         <button id="sw-lap-reset-btn" class="sw-circle-btn btn-grey" type="button">
           <span id="sw-lap-reset-text" class="sw-btn-main-text">分段</span>
-          <span class="sw-btn-key-hint">[D]</span>
+          <span class="sw-btn-key-hint">[D / 側鍵5]</span>
         </button>
       </div>
     </div>
@@ -1349,7 +1349,7 @@
 
     function renderLapsList() {
       if (recordedLaps.length === 0) {
-        swLapsContainer.innerHTML = `<div class="sw-empty-hint">尚無分段紀錄<br>按「開始 (S)」後按「分段 (D)」</div>`;
+        swLapsContainer.innerHTML = `<div class="sw-empty-hint">尚無分段紀錄<br>按「開始」或滑鼠側鍵4啟動</div>`;
         return;
       }
 
@@ -1404,7 +1404,7 @@
       rafId = requestAnimationFrame(tick);
     }
 
-    // 左側紅色按鈕 [S]：開始 / 停止 (模式 A)
+    // 左側紅色按鈕 [S / 側鍵4]：開始 / 停止 (模式 A)
     function handleStartStopAction() {
       if (swState === "IDLE" || swState === "STOPPED") {
         if (swState === "STOPPED") {
@@ -1467,7 +1467,7 @@
       renderLapsList();
     }
 
-    // 右側灰色按鈕 [D]：計時中按為「分段」，停止後按為「歸零」
+    // 右側灰色按鈕 [D / 側鍵5]：計時中按為「分段」，停止後按為「歸零」
     function handleLapResetAction() {
       if (swState === "RUNNING") {
         const now = performance.now();
@@ -1483,20 +1483,22 @@
     swLapResetBtn.addEventListener("click", handleLapResetAction);
 
     // ==========================================
-    // 7. 藍牙滑鼠自定義鍵 / 鍵盤遠端觸發監聽 (S / D)
+    // 7. 鍵盤按鍵 (S / D) + 滑鼠原始側鍵 (Button 4 / Button 5) 遠端觸發
     // ==========================================
     function flashButtonVisual(btnEl) {
       btnEl.classList.add("key-pressed");
       setTimeout(() => btnEl.classList.remove("key-pressed"), 120);
     }
 
-    window.addEventListener("keydown", (e) => {
-      if (e.repeat) return; // 防止按住不放時連續重複觸發
-
-      // 僅在「迴轉碼錶」分頁開啟且設定視窗未彈出時攔截 S 與 D 鍵
+    function canTriggerRemoteControl() {
       const isStopwatchActive = pageSw.classList.contains("active");
       const isModalClosed = !swSettingsModal.classList.contains("open") && !tireModal.classList.contains("open");
-      if (!isStopwatchActive || !isModalClosed) return;
+      return isStopwatchActive && isModalClosed;
+    }
+
+    // 監聽鍵盤 / 藍牙按鍵 (S 與 D)
+    window.addEventListener("keydown", (e) => {
+      if (e.repeat || !canTriggerRemoteControl()) return;
 
       const keyLower = (e.key || "").toLowerCase();
 
@@ -1509,6 +1511,34 @@
         flashButtonVisual(swLapResetBtn);
         handleLapResetAction();
       }
+    });
+
+    // 監聽滑鼠原始側鍵 (Button 4 -> e.button === 3；Button 5 -> e.button === 4)
+    window.addEventListener("mousedown", (e) => {
+      if (!canTriggerRemoteControl()) return;
+
+      if (e.button === 3) {
+        e.preventDefault();
+        e.stopPropagation();
+        flashButtonVisual(swStartStopBtn);
+        handleStartStopAction();
+      } else if (e.button === 4) {
+        e.preventDefault();
+        e.stopPropagation();
+        flashButtonVisual(swLapResetBtn);
+        handleLapResetAction();
+      }
+    });
+
+    // 阻擋放開側鍵時瀏覽器觸發預設「上一頁／下一頁」跳轉
+    ["mouseup", "auxclick"].forEach((evtName) => {
+      window.addEventListener(evtName, (e) => {
+        if (!canTriggerRemoteControl()) return;
+        if (e.button === 3 || e.button === 4) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      });
     });
 
     // 初次啟動載入
