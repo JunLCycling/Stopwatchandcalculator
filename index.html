@@ -1,594 +1,1382 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Podcast 逐字稿與重點產生器</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  
+  <!-- iOS / iPadOS 主畫面獨立全螢幕 PWA 設定 -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="齒比與碼錶" />
+  <meta name="theme-color" content="#000000" />
+  <title>RATIOS 齒比計算器 & 迴轉碼錶</title>
+
   <style>
     :root {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --text: #f8fafc;
-      --muted: #94a3b8;
-      --accent: #3b82f6;
-      --accent-hover: #2563eb;
-      --border: #334155;
+      --item-height: 34px;
+      --visible-items: 7;
+      --wheel-height: calc(var(--item-height) * var(--visible-items)); /* 直向 238px */
+      --pad-height: calc(var(--item-height) * 3);
+      --cyan: #32ade6;
+      --cyan-dim: rgba(50, 173, 230, 0.85);
+      --green: #30d158;
+      --yellow: #ffd60a;
+      --red: #e52521;
+      --grey-btn: #636366;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #000000;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "SF Pro Display", "PingFang TC", "Helvetica Neue", sans-serif;
+      overflow: hidden;
+    }
+
+    .app-container {
       display: flex;
       flex-direction: column;
-    }
-    .top-bar { display: flex; justify-content: flex-end; padding: 16px 24px; }
-    .icon-btn {
-      background: var(--card);
-      color: var(--muted);
-      border: 1px solid var(--border);
-      padding: 8px 14px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: 0.2s;
-    }
-    .icon-btn:hover { color: var(--text); border-color: var(--accent); }
-    .page {
-      display: none;
-      flex: 1;
-      width: 100%;
-      max-width: 860px;
+      max-width: 520px;
+      height: 100%;
       margin: 0 auto;
-      padding: 24px;
+      padding: calc(env(safe-area-inset-top, 10px) + 6px) 16px calc(env(safe-area-inset-bottom, 10px) + 10px);
+      gap: 12px;
     }
-    .page.active { display: flex; flex-direction: column; }
-    #page-input { justify-content: center; align-items: center; margin-top: -6vh; }
-    .hero-title { font-size: 28px; font-weight: 700; margin-bottom: 24px; letter-spacing: 0.5px; }
-    .input-row { display: flex; width: 100%; gap: 12px; }
-    .url-input {
+
+    /* ==========================================
+       頂部導覽列（頁面切換 + 右上角碼錶設定鈕）
+       ========================================== */
+    .top-bar {
+      display: grid;
+      grid-template-columns: 64px 1fr 64px;
+      align-items: center;
+      min-height: 34px;
+      flex-shrink: 0;
+    }
+
+    .seg-control {
+      grid-column: 2;
+      display: flex;
+      background: #1c1c1e;
+      border-radius: 9px;
+      padding: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      max-width: 320px;
+      width: 100%;
+      justify-self: center;
+    }
+
+    .seg-btn {
       flex: 1;
-      padding: 16px 20px;
-      font-size: 16px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      background: var(--card);
-      color: var(--text);
-      outline: none;
-    }
-    .url-input:focus { border-color: var(--accent); }
-    .submit-btn {
-      padding: 0 28px;
-      font-size: 16px;
-      font-weight: 600;
-      border-radius: 12px;
+      background: transparent;
       border: none;
-      background: var(--accent);
-      color: #fff;
+      color: #8e8e93;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 7px;
       cursor: pointer;
-      white-space: nowrap;
+      transition: all 0.15s ease;
     }
-    .submit-btn:hover { background: var(--accent-hover); }
-    .result-header {
+
+    .seg-btn.active {
+      background: #3a3a3c;
+      color: #ffffff;
+    }
+
+    .sw-settings-btn {
+      grid-column: 3;
+      justify-self: end;
+      background: none;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 8px;
+      color: var(--cyan);
+      font-size: 14px;
+      font-weight: 700;
+      padding: 5px 10px;
+      cursor: pointer;
+      display: none;
+    }
+
+    .sw-settings-btn.visible {
+      display: inline-block;
+    }
+
+    /* 頁面視圖切換 */
+    .page-view {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .page-view.active {
+      display: flex;
+    }
+
+    /* ==========================================
+       第一頁：齒比計算器樣式
+       ========================================== */
+    #page-calc {
+      gap: 14px;
+    }
+
+    .calc-right-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .wheels-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .wheel-headers {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      text-align: center;
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .wheels-wrapper,
+    .single-wheel-wrapper,
+    .quad-wheels-wrapper {
+      position: relative;
+      height: var(--wheel-height);
+      background: #000000;
+      overflow: hidden;
+    }
+
+    .wheels-wrapper {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    /* 上下漸層覆蓋層 */
+    .wheels-wrapper::before,
+    .single-wheel-wrapper::before,
+    .quad-wheels-wrapper::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--pad-height);
+      background: linear-gradient(to bottom, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.25) 100%);
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .wheels-wrapper::after,
+    .single-wheel-wrapper::after,
+    .quad-wheels-wrapper::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: var(--pad-height);
+      background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.25) 100%);
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .single-wheel-wrapper::before,
+    .quad-wheels-wrapper::before {
+      background: linear-gradient(to bottom, rgba(28,28,30,0.9) 0%, rgba(28,28,30,0.2) 100%);
+    }
+
+    .single-wheel-wrapper::after,
+    .quad-wheels-wrapper::after {
+      background: linear-gradient(to top, rgba(28,28,30,0.9) 0%, rgba(28,28,30,0.2) 100%);
+    }
+
+    .wheel-highlight {
+      position: absolute;
+      top: var(--pad-height);
+      left: 0;
+      right: 0;
+      height: var(--item-height);
+      background: rgba(255, 255, 255, 0.1);
+      border-top: 1px solid rgba(255, 255, 255, 0.22);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 8px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .wheel-column {
+      height: var(--wheel-height);
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      position: relative;
+      z-index: 2;
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
+    }
+
+    .wheel-column::-webkit-scrollbar {
+      display: none;
+    }
+
+    .wheel-spacer {
+      height: var(--pad-height);
+    }
+
+    .wheel-item {
+      height: var(--item-height);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      scroll-snap-align: center;
+      font-size: 19px;
+      font-weight: 600;
+      color: #8e8e93;
+      transition: transform 0.12s ease, color 0.12s ease;
+      cursor: pointer;
+    }
+
+    .wheel-item.active {
+      color: #ffffff;
+      font-size: 21px;
+      font-weight: 800;
+      transform: scale(1.05);
+    }
+
+    .spec-button {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 14px 20px;
+      background: #000000;
+      border: 2px solid #ffffff;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .spec-text {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--cyan);
+    }
+
+    .spec-chevron {
+      font-size: 22px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .results-card {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 20px;
+      border: 2px solid #ffffff;
+      border-radius: 10px;
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .label-cyan { color: var(--cyan-dim); }
+    .value-cyan { color: var(--cyan); font-variant-numeric: tabular-nums; }
+    .row-green  { color: var(--green); font-variant-numeric: tabular-nums; }
+
+    /* ==========================================
+       第二頁：迴轉碼錶樣式
+       ========================================== */
+    #page-stopwatch {
+      gap: 10px;
+      justify-content: space-between;
+    }
+
+    .sw-gear-header {
+      text-align: center;
+      padding: 2px 0;
+    }
+
+    .sw-gear-title {
+      font-size: 21px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: 0.3px;
+    }
+
+    .sw-gear-sub {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--cyan);
+      margin-left: 6px;
+    }
+
+    .sw-timers-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-items: center;
+      background: #111113;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 10px;
+      padding: 8px 12px;
+    }
+
+    .sw-timer-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .sw-timer-label {
+      font-size: 14px;
+      font-weight: 700;
+      color: #aeaeb2;
+    }
+
+    .sw-elapsed-box {
+      background: var(--yellow);
+      color: #000000;
+      font-size: 28px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      padding: 3px 16px;
+      border-radius: 6px;
+      width: 100%;
+      max-width: 165px;
+      text-align: center;
+      letter-spacing: 0.5px;
+    }
+
+    .sw-lap-running-box {
+      background: #2c2c2e;
+      color: #ffffff;
+      font-size: 28px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      padding: 3px 16px;
+      border-radius: 6px;
+      width: 100%;
+      max-width: 165px;
+      text-align: center;
+      letter-spacing: 0.5px;
+    }
+
+    .sw-main-split {
+      display: grid;
+      grid-template-columns: 1fr 1.18fr;
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+      margin: 2px 0;
+    }
+
+    .sw-left-col {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 6px 4px;
+      gap: 12px;
+    }
+
+    .sw-frozen-lap-wrap {
+      text-align: center;
+    }
+
+    .sw-frozen-lap-time {
+      font-size: 68px;
+      font-weight: 300;
+      color: #ffffff;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.05;
+    }
+
+    .sw-frozen-lap-label {
+      font-size: 17px;
+      font-weight: 700;
+      color: #8e8e93;
+      margin-top: 6px;
+    }
+
+    .sw-total-summary {
+      width: 100%;
+      background: rgba(48, 209, 88, 0.12);
+      border: 1.5px solid var(--green);
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sw-total-summary.visible {
+      display: flex;
+    }
+
+    .sw-total-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--green);
+      border-bottom: 1px solid rgba(48, 209, 88, 0.3);
+      padding-bottom: 3px;
+      margin-bottom: 2px;
+    }
+
+    .sw-total-line {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      justify-content: space-between;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .sw-right-box {
+      border: 2.5px solid #8e8e93;
+      border-radius: 8px;
+      background: #111113;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      flex-direction: column;
+      padding: 4px 10px;
+    }
+
+    .sw-lap-item {
+      padding: 10px 2px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .sw-lap-dist {
+      text-align: center;
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--cyan);
+      margin-bottom: 4px;
+    }
+
+    .sw-lap-detail {
+      font-size: 14px;
+      font-weight: 600;
+      color: #e5e5ea;
+      line-height: 1.42;
+    }
+
+    .sw-empty-hint {
+      margin: auto;
+      text-align: center;
+      color: #636366;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.5;
+    }
+
+    .sw-controls {
+      display: flex;
+      justify-content: center;
+      gap: 36px;
+      padding: 4px 0;
+    }
+
+    .sw-circle-btn {
+      width: 86px;
+      height: 86px;
+      border-radius: 50%;
+      border: none;
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      transition: transform 0.08s ease;
+    }
+
+    .sw-circle-btn:active {
+      transform: scale(0.94);
+    }
+
+    .btn-red { background-color: var(--red); }
+    .btn-grey { background-color: var(--grey-btn); }
+
+    /* ==========================================
+       彈出式選單共用樣式 (Sheet Modal)
+       ========================================== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 100;
+    }
+
+    .modal-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-sheet {
+      width: 100%;
+      max-width: 520px;
+      background: #1c1c1e;
+      border-radius: 16px 16px 0 0;
+      padding: 16px 12px calc(env(safe-area-inset-bottom, 16px) + 16px);
+      transform: translateY(100%);
+      transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
+    }
+
+    .modal-backdrop.open .modal-sheet {
+      transform: translateY(0);
+    }
+
+    .modal-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
-      gap: 12px;
-      flex-wrap: wrap;
+      padding: 0 4px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      margin-bottom: 10px;
     }
-    .action-group { display: flex; gap: 10px; }
-    .episode-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; color: #e2e8f0; }
-    .status-bar {
-      font-size: 14px;
-      color: var(--accent);
-      margin-bottom: 16px;
-      padding: 10px 14px;
-      background: rgba(59, 130, 246, 0.1);
-      border-left: 3px solid var(--accent);
-      border-radius: 6px;
-      word-break: break-all;
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
     }
-    .tabs-bar {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 10px;
-    }
-    .tab-btn {
-      background: transparent;
-      color: var(--muted);
-      border: 1px solid transparent;
-      padding: 8px 18px;
-      border-radius: 8px;
+
+    .modal-done-btn {
+      background: none;
+      border: none;
+      color: var(--cyan);
+      font-size: 17px;
+      font-weight: 700;
       cursor: pointer;
-      font-size: 15px;
-      font-weight: 600;
-      transition: 0.2s;
+      padding: 4px 8px;
     }
-    .tab-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.05); }
-    .tab-btn.active { background: var(--accent); color: #fff; }
-    .tab-pane {
-      display: none;
-      flex: 1;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 24px;
-      line-height: 1.8;
-      font-size: 16px;
-      white-space: pre-wrap;
-      overflow-y: auto;
-      min-height: 58vh;
+
+    .single-wheel-wrapper,
+    .quad-wheels-wrapper {
+      background: #1c1c1e;
     }
-    .tab-pane.active { display: block; }
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.7);
-      justify-content: center;
-      align-items: center;
-      z-index: 100;
+
+    .quad-wheel-headers {
+      display: grid;
+      grid-template-columns: 0.9fr 0.8fr 0.8fr 1.3fr;
+      text-align: center;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #aeaeb2;
+      margin-bottom: 4px;
     }
-    .modal-overlay.active { display: flex; }
-    .modal {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 24px;
-      width: 90%;
-      max-width: 460px;
+
+    .quad-wheels-wrapper {
+      display: grid;
+      grid-template-columns: 0.9fr 0.8fr 0.8fr 1.3fr;
     }
-    .modal h3 { margin-bottom: 16px; font-size: 18px; }
-    .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
-    .form-group input {
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: var(--bg);
-      color: var(--text);
-      font-size: 14px;
+
+    /* ==========================================
+       手機橫向模式 (Landscape) 全螢幕自適應排版
+       ========================================== */
+    @media (orientation: landscape) and (max-height: 600px) {
+      :root {
+        --visible-items: 5;
+        --wheel-height: calc(var(--item-height) * 5); /* 橫向縮減為 170px */
+        --pad-height: calc(var(--item-height) * 2);
+      }
+
+      .app-container {
+        max-width: 100%;
+        padding: calc(env(safe-area-inset-top, 4px) + 4px)
+                 calc(env(safe-area-inset-right, 16px) + 12px)
+                 calc(env(safe-area-inset-bottom, 4px) + 6px)
+                 calc(env(safe-area-inset-left, 16px) + 12px);
+        gap: 6px;
+      }
+
+      .top-bar {
+        min-height: 30px;
+      }
+
+      .seg-btn {
+        padding: 4px 10px;
+        font-size: 13px;
+      }
+
+      /* 第一頁橫向：左邊四滾輪、右邊輪胎設定與計算結果 */
+      #page-calc.active {
+        display: grid;
+        grid-template-columns: 1.15fr 1fr;
+        gap: 16px;
+        align-items: center;
+      }
+
+      .calc-right-panel {
+        gap: 10px;
+      }
+
+      .spec-button {
+        padding: 10px 16px;
+      }
+
+      .spec-text {
+        font-size: 17px;
+      }
+
+      .results-card {
+        padding: 14px 16px;
+        gap: 10px;
+        font-size: 18px;
+      }
+
+      /* 第二頁橫向：左欄時間與凍結秒數、中欄紀錄盒、右欄垂直雙按鍵 */
+      #page-stopwatch.active {
+        display: grid;
+        grid-template-columns: 1.25fr 1.1fr auto;
+        grid-template-rows: auto auto 1fr;
+        grid-template-areas:
+          "header timers controls"
+          "frozen laps   controls"
+          "frozen laps   controls";
+        gap: 6px 12px;
+        align-items: stretch;
+      }
+
+      .sw-gear-header {
+        grid-area: header;
+        text-align: left;
+        align-self: center;
+        padding: 0;
+      }
+
+      .sw-gear-title {
+        font-size: 17px;
+      }
+
+      .sw-timers-row {
+        grid-area: timers;
+        padding: 4px 8px;
+        gap: 8px;
+      }
+
+      .sw-timer-label {
+        font-size: 12px;
+      }
+
+      .sw-elapsed-box,
+      .sw-lap-running-box {
+        font-size: 21px;
+        padding: 2px 8px;
+      }
+
+      .sw-main-split {
+        display: contents;
+      }
+
+      .sw-left-col {
+        grid-area: frozen;
+        flex-direction: row;
+        justify-content: space-around;
+        align-items: center;
+        background: #111113;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 10px;
+        padding: 6px 10px;
+        gap: 8px;
+      }
+
+      .sw-frozen-lap-time {
+        font-size: 50px;
+      }
+
+      .sw-frozen-lap-label {
+        font-size: 14px;
+        margin-top: 2px;
+      }
+
+      .sw-total-summary {
+        max-width: 195px;
+        padding: 6px 8px;
+        gap: 2px;
+      }
+
+      .sw-total-title {
+        font-size: 12px;
+      }
+
+      .sw-total-line {
+        font-size: 12px;
+      }
+
+      .sw-right-box {
+        grid-area: laps;
+        height: 100%;
+      }
+
+      .sw-lap-item {
+        padding: 6px 2px;
+      }
+
+      .sw-lap-dist {
+        font-size: 14px;
+        margin-bottom: 2px;
+      }
+
+      .sw-lap-detail {
+        font-size: 12.5px;
+        line-height: 1.35;
+      }
+
+      .sw-controls {
+        grid-area: controls;
+        flex-direction: column;
+        justify-content: center;
+        gap: 14px;
+        padding: 0 2px;
+      }
+
+      .sw-circle-btn {
+        width: 72px;
+        height: 72px;
+        font-size: 18px;
+      }
+
+      .modal-sheet {
+        max-width: 600px;
+        padding: 10px 12px calc(env(safe-area-inset-bottom, 8px) + 8px);
+      }
     }
-    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
   </style>
 </head>
 <body>
 
-  <div class="top-bar">
-    <button class="icon-btn" onclick="openSettings()">⚙️ API 設定</button>
-  </div>
+  <div class="app-container">
+    <!-- 頂部切換列與碼錶設定鈕 -->
+    <div class="top-bar">
+      <div class="seg-control">
+        <button id="tab-calc" class="seg-btn active" type="button">齒比計算</button>
+        <button id="tab-sw" class="seg-btn" type="button">迴轉碼錶</button>
+      </div>
+      <button id="open-sw-settings-btn" class="sw-settings-btn" type="button">設定</button>
+    </div>
 
-  <div id="page-input" class="page active">
-    <div class="hero-title">Podcast 逐字稿產生器</div>
-    <form class="input-row" onsubmit="handleStart(event)">
-      <input
-        type="url"
-        id="podcast-url"
-        class="url-input"
-        placeholder="貼上 Apple Podcasts 單集連結或 .mp3 網址..."
-        required
-      />
-      <button type="submit" class="submit-btn">輸入生成</button>
-    </form>
-  </div>
+    <!-- ==========================================
+         頁面 1：RATIOS 齒比計算器
+         ========================================== -->
+    <div id="page-calc" class="page-view active">
+      <div class="wheels-section">
+        <div class="wheel-headers">
+          <div>前齒</div>
+          <div>後齒</div>
+          <div>迴轉(RPM)</div>
+          <div>距離(KM)</div>
+        </div>
 
-  <div id="page-result" class="page">
-    <div class="result-header">
-      <button class="icon-btn" onclick="goBack()">← 返回上一頁</button>
-      <div class="action-group">
-        <button class="icon-btn" onclick="copyCurrentTab()">複製當前分頁</button>
-        <button class="icon-btn" onclick="downloadCurrentTab()">下載當前 .txt</button>
-        <button class="icon-btn" onclick="downloadAll()">下載全部合併 .txt</button>
+        <div class="wheels-wrapper">
+          <div class="wheel-highlight"></div>
+          <div id="wheel-chainring" class="wheel-column"></div>
+          <div id="wheel-sprocket" class="wheel-column"></div>
+          <div id="wheel-rpm" class="wheel-column"></div>
+          <div id="wheel-distance" class="wheel-column"></div>
+        </div>
+      </div>
+
+      <div class="calc-right-panel">
+        <button id="open-tire-btn" class="spec-button" type="button">
+          <span id="tire-label" class="spec-text">輪胎規格: 700 X 20</span>
+          <span class="spec-chevron">&rsaquo;</span>
+        </button>
+
+        <div class="results-card">
+          <div class="result-row">
+            <span class="label-cyan">齒比 (吋):</span>
+            <span id="res-gear-inches" class="value-cyan">117.64 吋</span>
+          </div>
+          <div class="result-row">
+            <span class="label-cyan">速度:</span>
+            <span id="res-speed" class="value-cyan">48.9 KM/H</span>
+          </div>
+          <div class="result-row row-green">
+            <span id="res-time-label">騎乘時間 (5 KM):</span>
+            <span id="res-time-value">6分 07.85秒</span>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div id="ep-title" class="episode-title">準備中...</div>
-    <div id="status-text" class="status-bar">正在初始化...</div>
+    <!-- ==========================================
+         頁面 2：迴轉碼錶 (Solo TT Stopwatch)
+         ========================================== -->
+    <div id="page-stopwatch" class="page-view">
+      <!-- 1. 上方：所選的前齒、後齒、輪胎規格與單圈距離 -->
+      <div class="sw-gear-header">
+        <span id="sw-gear-display" class="sw-gear-title">50t x 13t · 700 X 20</span>
+        <span id="sw-dist-badge" class="sw-gear-sub">(250m)</span>
+      </div>
 
-    <div class="tabs-bar">
-      <button class="tab-btn active" data-tab="transcript" onclick="switchTab('transcript')">📄 完整逐字稿</button>
-      <button class="tab-btn" data-tab="summary" onclick="switchTab('summary')">📝 內容摘要</button>
-      <button class="tab-btn" data-tab="keypoints" onclick="switchTab('keypoints')">📌 條列式重點</button>
+      <!-- 2. 累計時間 與 分段時間 並排顯示 -->
+      <div class="sw-timers-row">
+        <div class="sw-timer-block">
+          <div class="sw-timer-label">累計時間</div>
+          <div id="sw-elapsed-display" class="sw-elapsed-box">00.00</div>
+        </div>
+        <div class="sw-timer-block">
+          <div id="sw-running-lap-label" class="sw-timer-label">分段時間 (Lap 1)</div>
+          <div id="sw-running-lap-display" class="sw-lap-running-box">00.00</div>
+        </div>
+      </div>
+
+      <!-- 3. 中間左右分割：左邊凍結上個分段秒數(個位數+小數第一位)＋全程總計 ／ 右邊分段紀錄盒 -->
+      <div class="sw-main-split">
+        <div class="sw-left-col">
+          <div class="sw-frozen-lap-wrap">
+            <div id="sw-frozen-lap-time" class="sw-frozen-lap-time">0.0</div>
+            <div id="sw-frozen-lap-num" class="sw-frozen-lap-label">上圈秒數</div>
+          </div>
+
+          <!-- 按下停止時顯示的全程總計 (模式 A) -->
+          <div id="sw-total-card" class="sw-total-summary">
+            <div id="sw-total-title" class="sw-total-title">🏁 全程總計</div>
+            <div class="sw-total-line">
+              <span>全程秒數:</span>
+              <span id="sw-total-time">0.00秒</span>
+            </div>
+            <div class="sw-total-line">
+              <span>平均速度:</span>
+              <span id="sw-total-speed">0.0 km/h</span>
+            </div>
+            <div class="sw-total-line">
+              <span>全程迴轉:</span>
+              <span id="sw-total-rpm">0.0 RPM</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="sw-laps-container" class="sw-right-box">
+          <div class="sw-empty-hint">尚無分段紀錄<br>開始後按「分段」記錄各圈</div>
+        </div>
+      </div>
+
+      <!-- 4. 控制鍵：直向在底部水平排列，橫向在右側垂直排列 -->
+      <div class="sw-controls">
+        <button id="sw-start-stop-btn" class="sw-circle-btn btn-red" type="button">開始</button>
+        <button id="sw-lap-reset-btn" class="sw-circle-btn btn-grey" type="button">分段</button>
+      </div>
     </div>
-
-    <div id="pane-transcript" class="tab-pane active"></div>
-    <div id="pane-summary" class="tab-pane"></div>
-    <div id="pane-keypoints" class="tab-pane"></div>
   </div>
 
-  <div id="settings-modal" class="modal-overlay">
-    <div class="modal">
-      <h3>連線設定（僅儲存於本機瀏覽器）</h3>
-      <div class="form-group">
-        <label>Gemini API Key</label>
-        <input type="password" id="cfg-apikey" placeholder="貼上 API Key..." />
+  <!-- 彈出選單 1：第一頁的輪胎規格設定 -->
+  <div id="tire-modal" class="modal-backdrop">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <span class="modal-title">輪胎規格設定</span>
+        <button id="close-tire-btn" class="modal-done-btn" type="button">完成</button>
       </div>
-      <div class="form-group">
-        <label>Cloudflare Worker 網址</label>
-        <input type="url" id="cfg-worker" placeholder="https://podcast-proxy.你的帳號.workers.dev" />
+      <div class="single-wheel-wrapper">
+        <div class="wheel-highlight"></div>
+        <div id="wheel-tire" class="wheel-column"></div>
       </div>
-      <div class="modal-actions">
-        <button class="icon-btn" onclick="clearSettings()">清除金鑰</button>
-        <button class="icon-btn" onclick="closeSettings()">取消</button>
-        <button class="submit-btn" style="padding: 8px 18px; font-size: 14px;" onclick="saveSettings()">儲存</button>
+    </div>
+  </div>
+
+  <!-- 彈出選單 2：第二頁右上角的碼錶設定（分圈距離、前齒、後齒、輪胎規格） -->
+  <div id="sw-settings-modal" class="modal-backdrop">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <span class="modal-title">碼錶設定</span>
+        <button id="close-sw-settings-btn" class="modal-done-btn" type="button">完成</button>
+      </div>
+      <div class="quad-wheel-headers">
+        <div>距離(m)</div>
+        <div>前齒(t)</div>
+        <div>後齒(t)</div>
+        <div>輪胎規格</div>
+      </div>
+      <div class="quad-wheels-wrapper">
+        <div class="wheel-highlight"></div>
+        <div id="wheel-sw-dist" class="wheel-column"></div>
+        <div id="wheel-sw-chainring" class="wheel-column"></div>
+        <div id="wheel-sw-sprocket" class="wheel-column"></div>
+        <div id="wheel-sw-tire" class="wheel-column"></div>
       </div>
     </div>
   </div>
 
   <script>
-    let currentTitle = "podcast_transcript";
-    let activeTab = "transcript";
+    // ==========================================
+    // 1. 共同資料清單設定
+    // ==========================================
+    const ITEM_HEIGHT = 34;
 
-    function getConfig() {
-      return {
-        apiKey: (localStorage.getItem("gemini_api_key") || "").trim(),
-        workerUrl: (localStorage.getItem("cf_worker_url") || "").trim().replace(/\/+$/, "")
-      };
-    }
+    const chainringList = Array.from({ length: 75 - 45 + 1 }, (_, i) => 45 + i); // 45 ~ 75
+    const sprocketList  = Array.from({ length: 20 - 10 + 1 }, (_, i) => 10 + i); // 10 ~ 20
+    const rpmList       = Array.from({ length: 160 - 40 + 1 }, (_, i) => 40 + i); // 40 ~ 160
+    const distanceList  = [0.2, 0.25, 0.333, 0.5, 0.666, 1, 1.5, 2, 3, 4, 5, 7.5, 10, 15, 16, 20, 25, 30, 50];
+    const swLapDistList = [50, 100, 125, 166, 250, 333]; // 碼錶分圈距離設定顯示值 (m)
 
-    function openSettings() {
-      const { apiKey, workerUrl } = getConfig();
-      document.getElementById("cfg-apikey").value = apiKey;
-      document.getElementById("cfg-worker").value = workerUrl;
-      document.getElementById("settings-modal").classList.add("active");
-    }
+    const tireSpecs = [
+      { name: "700 X 18", diameterMM: 658.0 },
+      { name: "700 X 20", diameterMM: 662.0 },
+      { name: "700 X 23", diameterMM: 668.0 },
+      { name: "700 X 25", diameterMM: 672.0 },
+      { name: "700 X 28", diameterMM: 678.0 },
+      { name: "700 X 30", diameterMM: 682.0 },
+      { name: "700 X 32", diameterMM: 686.0 },
+      { name: "700 X 35", diameterMM: 692.0 },
+      { name: "700 X 38", diameterMM: 698.0 },
+      { name: "700 X 40", diameterMM: 702.0 },
+      { name: "700 X 42", diameterMM: 706.0 },
+      { name: "700 X 45", diameterMM: 712.0 }
+    ];
 
-    function closeSettings() {
-      document.getElementById("settings-modal").classList.remove("active");
-    }
-
-    function saveSettings() {
-      const apiKey = document.getElementById("cfg-apikey").value.trim();
-      const workerUrl = document.getElementById("cfg-worker").value.trim().replace(/\/+$/, "");
-      localStorage.setItem("gemini_api_key", apiKey);
-      localStorage.setItem("cf_worker_url", workerUrl);
-      closeSettings();
-    }
-
-    function clearSettings() {
-      localStorage.removeItem("gemini_api_key");
-      localStorage.removeItem("cf_worker_url");
-      document.getElementById("cfg-apikey").value = "";
-      document.getElementById("cfg-worker").value = "";
-      alert("已從本機瀏覽器清除 API Key！");
-    }
-
-    function switchPage(pageId) {
-      document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-      document.getElementById(pageId).classList.add("active");
-    }
-
-    function switchTab(tabName) {
-      activeTab = tabName;
-      document.querySelectorAll(".tab-btn").forEach(btn => {
-        btn.classList.toggle("active", btn.dataset.tab === tabName);
-      });
-      document.querySelectorAll(".tab-pane").forEach(pane => {
-        pane.classList.remove("active");
-      });
-      document.getElementById(`pane-${tabName}`).classList.add("active");
-    }
-
-    function goBack() {
-      switchPage("page-input");
-    }
-
-    function setStatus(msg) {
-      document.getElementById("status-text").textContent = msg;
-    }
-
-    async function fetchJsonWithCorsFallback(targetUrl) {
-      const routes = [
-        targetUrl,
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
-        `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
-      ];
-      for (const route of routes) {
-        try {
-          const res = await fetch(route);
-          if (res.ok) return await res.json();
-        } catch (e) {}
+    function loadSavedValue(key, list, defaultVal) {
+      const saved = localStorage.getItem(key);
+      if (saved !== null) {
+        const num = Number(saved);
+        if (list.includes(num)) return num;
       }
-      throw new Error("無法連線至 Apple iTunes API");
+      return defaultVal;
     }
 
-    async function resolvePodcastInBrowser(inputUrl) {
-      if (!inputUrl.includes("podcasts.apple.com")) {
-        return { audioUrl: inputUrl, title: "Podcast Audio" };
-      }
-      const podcastIdMatch = inputUrl.match(/id(\d+)/);
-      const episodeIdMatch = inputUrl.match(/[?&]i=(\d+)/);
-      if (!podcastIdMatch) throw new Error("無法從網址辨識節目 ID");
+    // 第一頁狀態
+    let selectedChainring = loadSavedValue("selectedChainring", chainringList, 61);
+    let selectedSprocket  = loadSavedValue("selectedSprocket", sprocketList, 14);
+    let selectedRPM       = loadSavedValue("selectedRPM", rpmList, 90);
+    let selectedDistance  = loadSavedValue("selectedDistance", distanceList, 5.0);
+    let selectedTireIndex = Number(localStorage.getItem("selectedTireIndex") ?? 1);
+    if (selectedTireIndex < 0 || selectedTireIndex >= tireSpecs.length) selectedTireIndex = 1;
 
-      const podcastId = podcastIdMatch[1];
-      const episodeId = episodeIdMatch ? episodeIdMatch[1] : null;
+    // 第二頁（迴轉碼錶）設定狀態
+    let swLapDist   = loadSavedValue("swLapDist", swLapDistList, 250);
+    let swChainring = loadSavedValue("swChainring", chainringList, 50);
+    let swSprocket  = loadSavedValue("swSprocket", sprocketList, 13);
+    let swTireIndex = Number(localStorage.getItem("swTireIndex") ?? selectedTireIndex);
+    if (swTireIndex < 0 || swTireIndex >= tireSpecs.length) swTireIndex = 1;
 
-      const lookupUrl = `https://itunes.apple.com/lookup?id=${podcastId}&entity=podcastEpisode&limit=200`;
-      const lookupData = await fetchJsonWithCorsFallback(lookupUrl);
+    // 紀錄所有滾輪實例，供螢幕旋轉時重新對齊定位
+    const wheelRegistry = [];
 
-      if (!lookupData.results || lookupData.results.length === 0) {
-        throw new Error("iTunes API 找不到此節目");
-      }
-
-      const episodes = lookupData.results.slice(1);
-      if (episodeId) {
-        const matchedEp = episodes.find(ep => String(ep.trackId) === String(episodeId));
-        if (matchedEp && matchedEp.episodeUrl) {
-          return { audioUrl: matchedEp.episodeUrl, title: matchedEp.trackName };
-        }
-      } else if (episodes.length > 0 && episodes[0].episodeUrl) {
-        return { audioUrl: episodes[0].episodeUrl, title: episodes[0].trackName };
-      }
-      throw new Error("找不到此單集的音檔連結");
-    }
-
-    async function downloadAudioBlob(audioUrl, workerUrl) {
-      const proxyUrl = `${workerUrl}?audioUrl=${encodeURIComponent(audioUrl)}`;
-      let res;
-      try {
-        res = await fetch(proxyUrl);
-      } catch (err) {
-        throw new Error(`無法連上 Worker (${workerUrl}) (${err.message})`);
-      }
-
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Worker 下載音檔失敗 (${res.status}): ${errText}`);
-      }
-
-      const reader = res.body.getReader();
-      const chunks = [];
-      let received = 0;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-        received += value.length;
-        setStatus(`步驟 2/4：正在讀取音檔串流... 已接收 ${(received / 1048576).toFixed(1)} MB`);
-      }
-
-      return new Blob(chunks, { type: res.headers.get("content-type") || "audio/mpeg" });
-    }
-
-    async function uploadBlobToGemini(blob, title, apiKey) {
-      setStatus(`步驟 3/4：正在將音檔 (${(blob.size / 1048576).toFixed(1)} MB) 上傳至 Gemini...`);
-      const initRes = await fetch(
-        `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: {
-            "X-Goog-Upload-Protocol": "resumable",
-            "X-Goog-Upload-Command": "start",
-            "X-Goog-Upload-Header-Content-Length": blob.size.toString(),
-            "X-Goog-Upload-Header-Content-Type": blob.type || "audio/mpeg",
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ file: { display_name: title } })
-        }
-      );
-
-      if (!initRes.ok) {
-        const errText = await initRes.text();
-        throw new Error(`Gemini API 初始化失敗 (${initRes.status}): ${errText}`);
-      }
-
-      const uploadUrl = initRes.headers.get("x-goog-upload-url");
-      const uploadRes = await fetch(uploadUrl, {
-        method: "POST",
-        headers: {
-          "Content-Length": blob.size.toString(),
-          "X-Goog-Upload-Offset": "0",
-          "X-Goog-Upload-Command": "upload, finalize"
-        },
-        body: blob
-      });
-
-      if (!uploadRes.ok) {
-        const errText = await uploadRes.text();
-        throw new Error(`音檔上傳 Gemini 失敗 (${uploadRes.status}): ${errText}`);
-      }
-
-      const data = await uploadRes.json();
-      return data.file;
-    }
-
-    function renderSections(fullText) {
-      const sumMarker = "===SUMMARY===";
-      const kpMarker = "===KEYPOINTS===";
-      const trMarker = "===TRANSCRIPT===";
-
-      const sumIdx = fullText.indexOf(sumMarker);
-      const kpIdx = fullText.indexOf(kpMarker);
-      const trIdx = fullText.indexOf(trMarker);
-
-      let summaryText = "";
-      let keypointsText = "";
-      let transcriptText = "";
-
-      if (sumIdx !== -1) {
-        const sumStart = sumIdx + sumMarker.length;
-        const sumEnd = kpIdx !== -1 ? kpIdx : (trIdx !== -1 ? trIdx : fullText.length);
-        summaryText = fullText.slice(sumStart, sumEnd).trim();
-      }
-
-      if (kpIdx !== -1) {
-        const kpStart = kpIdx + kpMarker.length;
-        const kpEnd = trIdx !== -1 ? trIdx : fullText.length;
-        keypointsText = fullText.slice(kpStart, kpEnd).trim();
-      }
-
-      if (trIdx !== -1) {
-        const trStart = trIdx + trMarker.length;
-        transcriptText = fullText.slice(trStart).trim();
-      } else if (sumIdx === -1 && kpIdx === -1) {
-        transcriptText = fullText;
-      }
-
-      document.getElementById("pane-summary").textContent = summaryText || "（正在生成內容摘要...）";
-      document.getElementById("pane-keypoints").textContent = keypointsText || "（正在生成條列式重點...）";
-      document.getElementById("pane-transcript").textContent = transcriptText || "（正在完成前段摘要與重點，隨即開始印出完整逐字稿...）";
-    }
-
-    // 內建 503 伺服器忙碌自動重試機制（免重傳音檔）
-    async function requestGeminiStreamWithRetry(streamUrl, payload, maxRetries = 4) {
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        const res = await fetch(streamUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+    function syncAllWheelsScroll() {
+      requestAnimationFrame(() => {
+        wheelRegistry.forEach(w => {
+          w.container.scrollTop = w.getActiveIdx() * ITEM_HEIGHT;
         });
-
-        if (res.ok) return res;
-
-        const errText = await res.text();
-        if ((res.status === 503 || res.status === 429) && attempt < maxRetries) {
-          const waitSec = attempt * 6;
-          for (let s = waitSec; s > 0; s--) {
-            setStatus(`⚠️ Google 伺服器目前忙碌中 (503)，免重傳音檔，將於 ${s} 秒後自動進行第 ${attempt}/${maxRetries - 1} 次重試...`);
-            await new Promise(r => setTimeout(r, 1000));
-          }
-          setStatus(`步驟 4/4：正在重新請求 Gemini 生成內容 (第 ${attempt} 次重試)...`);
-          continue;
-        }
-
-        throw new Error(`Gemini 生成失敗: ${errText}`);
-      }
+      });
     }
 
-    async function handleStart(e) {
-      e.preventDefault();
-      const url = document.getElementById("podcast-url").value.trim();
-      const { apiKey, workerUrl } = getConfig();
+    window.addEventListener("resize", syncAllWheelsScroll);
+    window.addEventListener("orientationchange", () => setTimeout(syncAllWheelsScroll, 120));
 
-      if (!apiKey || !workerUrl) {
-        alert("請先點擊右上角「⚙️ API 設定」填入 Gemini API Key 與 Worker 網址。");
-        openSettings();
+    // ==========================================
+    // 2. 頁面頂部切換控制
+    // ==========================================
+    const tabCalcBtn = document.getElementById("tab-calc");
+    const tabSwBtn   = document.getElementById("tab-sw");
+    const pageCalc   = document.getElementById("page-calc");
+    const pageSw     = document.getElementById("page-stopwatch");
+    const openSwSettingsBtn = document.getElementById("open-sw-settings-btn");
+
+    tabCalcBtn.addEventListener("click", () => {
+      tabCalcBtn.classList.add("active");
+      tabSwBtn.classList.remove("active");
+      pageCalc.classList.add("active");
+      pageSw.classList.remove("active");
+      openSwSettingsBtn.classList.remove("visible");
+      syncAllWheelsScroll();
+    });
+
+    tabSwBtn.addEventListener("click", () => {
+      tabSwBtn.classList.add("active");
+      tabCalcBtn.classList.remove("active");
+      pageSw.classList.add("active");
+      pageCalc.classList.remove("active");
+      openSwSettingsBtn.classList.add("visible");
+    });
+
+    // ==========================================
+    // 3. 第一頁：齒比計算器邏輯
+    // ==========================================
+    function formatDistance(km) {
+      return Number.isInteger(km) ? km.toFixed(0) : String(km);
+    }
+
+    function updateCalculations() {
+      const gearRatio = selectedChainring / selectedSprocket;
+      const gearInches = 27.0 * gearRatio;
+      const wheelCircumferenceMeters = (tireSpecs[selectedTireIndex].diameterMM * Math.PI) / 1000.0;
+      const developmentMeters = gearRatio * wheelCircumferenceMeters;
+      const speedKmh = (developmentMeters * selectedRPM * 60.0) / 1000.0;
+
+      let ridingTimeFormatted = "0.00秒";
+      if (speedKmh > 0) {
+        const totalSeconds = (selectedDistance / speedKmh) * 3600.0;
+        const roundedTotal = Math.round(totalSeconds * 100) / 100;
+        const minutes = Math.floor(roundedTotal / 60);
+        const seconds = roundedTotal - minutes * 60;
+
+        if (minutes > 0) {
+          const secStr = seconds.toFixed(2).padStart(5, "0");
+          ridingTimeFormatted = `${minutes}分 ${secStr}秒`;
+        } else {
+          ridingTimeFormatted = `${roundedTotal.toFixed(2)}秒`;
+        }
+      }
+
+      document.getElementById("tire-label").textContent = `輪胎規格: ${tireSpecs[selectedTireIndex].name}`;
+      document.getElementById("res-gear-inches").textContent = `${gearInches.toFixed(2)} 吋`;
+      document.getElementById("res-speed").textContent = `${speedKmh.toFixed(1)} KM/H`;
+      document.getElementById("res-time-label").textContent = `騎乘時間 (${formatDistance(selectedDistance)} KM):`;
+      document.getElementById("res-time-value").textContent = ridingTimeFormatted;
+    }
+
+    // ==========================================
+    // 4. 通用滾輪元件生成函式
+    // ==========================================
+    function setupWheel(containerId, items, initialIndex, formatFn, onSelect) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+
+      const topSpacer = document.createElement("div");
+      topSpacer.className = "wheel-spacer";
+      container.appendChild(topSpacer);
+
+      const itemEls = items.map((item, idx) => {
+        const div = document.createElement("div");
+        div.className = "wheel-item" + (idx === initialIndex ? " active" : "");
+        div.textContent = formatFn(item);
+        div.addEventListener("click", () => {
+          container.scrollTo({ top: idx * ITEM_HEIGHT, behavior: "smooth" });
+        });
+        container.appendChild(div);
+        return div;
+      });
+
+      const bottomSpacer = document.createElement("div");
+      bottomSpacer.className = "wheel-spacer";
+      container.appendChild(bottomSpacer);
+
+      let activeIdx = Math.max(0, initialIndex);
+
+      requestAnimationFrame(() => {
+        container.scrollTop = activeIdx * ITEM_HEIGHT;
+      });
+
+      container.addEventListener("scroll", () => {
+        const rawIdx = Math.round(container.scrollTop / ITEM_HEIGHT);
+        const clampedIdx = Math.max(0, Math.min(items.length - 1, rawIdx));
+        if (clampedIdx !== activeIdx) {
+          itemEls[activeIdx]?.classList.remove("active");
+          itemEls[clampedIdx]?.classList.add("active");
+          activeIdx = clampedIdx;
+          onSelect(items[clampedIdx], clampedIdx);
+        }
+      }, { passive: true });
+
+      wheelRegistry.push({
+        container,
+        getActiveIdx: () => activeIdx
+      });
+    }
+
+    // 初始化第一頁滾輪
+    setupWheel("wheel-chainring", chainringList, chainringList.indexOf(selectedChainring), v => v, (val) => {
+      selectedChainring = val;
+      localStorage.setItem("selectedChainring", val);
+      updateCalculations();
+    });
+
+    setupWheel("wheel-sprocket", sprocketList, sprocketList.indexOf(selectedSprocket), v => v, (val) => {
+      selectedSprocket = val;
+      localStorage.setItem("selectedSprocket", val);
+      updateCalculations();
+    });
+
+    setupWheel("wheel-rpm", rpmList, rpmList.indexOf(selectedRPM), v => v, (val) => {
+      selectedRPM = val;
+      localStorage.setItem("selectedRPM", val);
+      updateCalculations();
+    });
+
+    setupWheel("wheel-distance", distanceList, distanceList.indexOf(selectedDistance), v => formatDistance(v), (val) => {
+      selectedDistance = val;
+      localStorage.setItem("selectedDistance", val);
+      updateCalculations();
+    });
+
+    setupWheel("wheel-tire", tireSpecs, selectedTireIndex, item => item.name, (_, idx) => {
+      selectedTireIndex = idx;
+      localStorage.setItem("selectedTireIndex", idx);
+      updateCalculations();
+    });
+
+    // 第一頁輪胎選單開關
+    const tireModal = document.getElementById("tire-modal");
+    const wheelTireEl = document.getElementById("wheel-tire");
+    document.getElementById("open-tire-btn").addEventListener("click", () => {
+      tireModal.classList.add("open");
+      wheelTireEl.scrollTop = selectedTireIndex * ITEM_HEIGHT;
+    });
+    document.getElementById("close-tire-btn").addEventListener("click", () => tireModal.classList.remove("open"));
+    tireModal.addEventListener("click", (e) => { if (e.target === tireModal) tireModal.classList.remove("open"); });
+
+    // ==========================================
+    // 5. 第二頁：迴轉碼錶邏輯與設定選單
+    // ==========================================
+    const swGearDisplay       = document.getElementById("sw-gear-display");
+    const swDistBadge         = document.getElementById("sw-dist-badge");
+    const swElapsedDisplay    = document.getElementById("sw-elapsed-display");
+    const swRunningLapLabel   = document.getElementById("sw-running-lap-label");
+    const swRunningLapDisplay = document.getElementById("sw-running-lap-display");
+    const swFrozenLapTime     = document.getElementById("sw-frozen-lap-time");
+    const swFrozenLapNum      = document.getElementById("sw-frozen-lap-num");
+    const swLapsContainer     = document.getElementById("sw-laps-container");
+    const swTotalCard         = document.getElementById("sw-total-card");
+    const swTotalTitle        = document.getElementById("sw-total-title");
+    const swTotalTime         = document.getElementById("sw-total-time");
+    const swTotalSpeed        = document.getElementById("sw-total-speed");
+    const swTotalRpm          = document.getElementById("sw-total-rpm");
+    const swStartStopBtn      = document.getElementById("sw-start-stop-btn");
+    const swLapResetBtn       = document.getElementById("sw-lap-reset-btn");
+
+    function updateSwHeader() {
+      swGearDisplay.textContent = `${swChainring}t x ${swSprocket}t · ${tireSpecs[swTireIndex].name}`;
+      swDistBadge.textContent = `(${swLapDist}m)`;
+    }
+
+    // 初始化第二頁設定滾輪（分圈距離、前齒、後齒、輪胎規格）
+    setupWheel("wheel-sw-dist", swLapDistList, swLapDistList.indexOf(swLapDist), v => `${v}m`, (val) => {
+      swLapDist = val;
+      localStorage.setItem("swLapDist", val);
+      updateSwHeader();
+    });
+
+    setupWheel("wheel-sw-chainring", chainringList, chainringList.indexOf(swChainring), v => `${v}t`, (val) => {
+      swChainring = val;
+      localStorage.setItem("swChainring", val);
+      updateSwHeader();
+    });
+
+    setupWheel("wheel-sw-sprocket", sprocketList, sprocketList.indexOf(swSprocket), v => `${v}t`, (val) => {
+      swSprocket = val;
+      localStorage.setItem("swSprocket", val);
+      updateSwHeader();
+    });
+
+    setupWheel("wheel-sw-tire", tireSpecs, swTireIndex, item => item.name, (_, idx) => {
+      swTireIndex = idx;
+      localStorage.setItem("swTireIndex", idx);
+      updateSwHeader();
+    });
+
+    // 碼錶設定選單開關
+    const swSettingsModal = document.getElementById("sw-settings-modal");
+    openSwSettingsBtn.addEventListener("click", () => {
+      swSettingsModal.classList.add("open");
+      document.getElementById("wheel-sw-dist").scrollTop = swLapDistList.indexOf(swLapDist) * ITEM_HEIGHT;
+      document.getElementById("wheel-sw-chainring").scrollTop = chainringList.indexOf(swChainring) * ITEM_HEIGHT;
+      document.getElementById("wheel-sw-sprocket").scrollTop = sprocketList.indexOf(swSprocket) * ITEM_HEIGHT;
+      document.getElementById("wheel-sw-tire").scrollTop = swTireIndex * ITEM_HEIGHT;
+    });
+    document.getElementById("close-sw-settings-btn").addEventListener("click", () => swSettingsModal.classList.remove("open"));
+    swSettingsModal.addEventListener("click", (e) => { if (e.target === swSettingsModal) swSettingsModal.classList.remove("open"); });
+
+    // 碼錶狀態機： "IDLE" | "RUNNING" | "STOPPED"
+    let swState = "IDLE";
+    let startTimeMs = 0;
+    let lapStartMs = 0;
+    let rafId = null;
+    let recordedLaps = [];
+
+    function formatStopwatchSeconds(sec) {
+      if (sec >= 60) {
+        const m = Math.floor(sec / 60);
+        const s = (sec - m * 60).toFixed(2).padStart(5, "0");
+        return `${m}:${s}`;
+      }
+      return sec.toFixed(2).padStart(5, "0");
+    }
+
+    // 左側大字體專用格式化：只取個位數與小數第一位（例如 10.68 -> 0.6，15.48 -> 5.4）
+    function formatShortLap(sec) {
+      const centi = Math.round(sec * 100);
+      const onesAndTenths = Math.floor((centi % 1000) / 10);
+      return (onesAndTenths / 10).toFixed(1);
+    }
+
+    // 將畫面設定的分圈距離轉換為實際計算距離（333 -> 333.3333，166 -> 166.6666）
+    function getActualLapDist(nominalDist) {
+      if (nominalDist === 333) return 333.3333;
+      if (nominalDist === 166) return 166.6666;
+      return nominalDist;
+    }
+
+    function calcSwMetrics(actualDistanceMeters, timeSeconds) {
+      if (timeSeconds <= 0) return { speedKmh: 0, rpm: 0 };
+      const swWheelCircumferenceMeters = (tireSpecs[swTireIndex].diameterMM * Math.PI) / 1000.0;
+      const gearRatio = swChainring / swSprocket;
+      const developmentMeters = gearRatio * swWheelCircumferenceMeters;
+
+      const pedalRevolutions = actualDistanceMeters / developmentMeters;
+      const rpm = (pedalRevolutions / timeSeconds) * 60.0;
+      const speedKmh = (developmentMeters * rpm * 60.0) / 1000.0;
+
+      return { speedKmh, rpm };
+    }
+
+    function renderLapsList() {
+      if (recordedLaps.length === 0) {
+        swLapsContainer.innerHTML = `<div class="sw-empty-hint">尚無分段紀錄<br>開始後按「分段」記錄各圈</div>`;
         return;
       }
 
-      switchPage("page-result");
-      switchTab("transcript");
+      swLapsContainer.innerHTML = recordedLaps.map((lap) => `
+        <div class="sw-lap-item">
+          <div class="sw-lap-dist">${lap.cumDist}m (分段 ${lap.lapDist}m)</div>
+          <div class="sw-lap-detail">分段秒數: ${lap.lapSec.toFixed(2)}秒</div>
+          <div class="sw-lap-detail">速度: ${lap.speedKmh.toFixed(1)} km/h</div>
+          <div class="sw-lap-detail">迴轉: ${lap.rpm.toFixed(1)} RPM</div>
+        </div>
+      `).join("");
 
-      document.getElementById("pane-transcript").textContent = "準備中...";
-      document.getElementById("pane-summary").textContent = "準備中...";
-      document.getElementById("pane-keypoints").textContent = "準備中...";
-      const titleEl = document.getElementById("ep-title");
-      titleEl.textContent = "解析單集資訊中...";
+      swLapsContainer.scrollTop = swLapsContainer.scrollHeight;
+    }
 
-      try {
-        setStatus("步驟 1/4：正在從 Apple 取得單集音檔連結...");
-        const { audioUrl, title } = await resolvePodcastInBrowser(url);
-        currentTitle = title || "Podcast 單集";
-        titleEl.textContent = currentTitle;
+    function recordNewLap(nowMs, isFinalStop = false) {
+      const lapSec = (nowMs - lapStartMs) / 1000.0;
+      if (lapSec <= 0.05) return;
 
-        const audioBlob = await downloadAudioBlob(audioUrl, workerUrl);
-        const fileInfo = await uploadBlobToGemini(audioBlob, currentTitle, apiKey);
+      const lapNumber = recordedLaps.length + 1;
+      const cumDist = lapNumber * swLapDist;
+      const actualDist = getActualLapDist(swLapDist);
+      const { speedKmh, rpm } = calcSwMetrics(actualDist, lapSec);
 
-        let state = fileInfo.state;
-        while (state === "PROCESSING") {
-          setStatus("步驟 3/4：等待 Gemini 音訊處理就緒...");
-          await new Promise(r => setTimeout(r, 2500));
-          const checkRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/${fileInfo.name}?key=${apiKey}`);
-          const checkData = await checkRes.json();
-          state = checkData.state;
-          if (state === "FAILED") throw new Error("Gemini 音訊處理失敗");
+      recordedLaps.push({
+        lapNumber,
+        lapDist: swLapDist,
+        actualDist,
+        cumDist,
+        lapSec,
+        speedKmh,
+        rpm
+      });
+
+      swFrozenLapTime.textContent = formatShortLap(lapSec);
+      swFrozenLapNum.textContent = isFinalStop ? `Lap ${lapNumber} (終點)` : `Lap ${lapNumber}`;
+
+      lapStartMs = nowMs;
+      renderLapsList();
+    }
+
+    function tick() {
+      if (swState !== "RUNNING") return;
+      const now = performance.now();
+      const elapsedSec = (now - startTimeMs) / 1000.0;
+      const currentLapSec = (now - lapStartMs) / 1000.0;
+
+      swElapsedDisplay.textContent = formatStopwatchSeconds(elapsedSec);
+      swRunningLapDisplay.textContent = formatStopwatchSeconds(currentLapSec);
+      swRunningLapLabel.textContent = `分段時間 (Lap ${recordedLaps.length + 1})`;
+
+      rafId = requestAnimationFrame(tick);
+    }
+
+    // 左側紅色按鈕：開始 / 停止 (模式 A)
+    swStartStopBtn.addEventListener("click", () => {
+      if (swState === "IDLE" || swState === "STOPPED") {
+        if (swState === "STOPPED") {
+          resetStopwatch();
         }
+        const now = performance.now();
+        startTimeMs = now;
+        lapStartMs = now;
+        swState = "RUNNING";
+        swStartStopBtn.textContent = "停止";
+        swTotalCard.classList.remove("visible");
+        rafId = requestAnimationFrame(tick);
+      } else if (swState === "RUNNING") {
+        const now = performance.now();
+        cancelAnimationFrame(rafId);
+        swState = "STOPPED";
+        swStartStopBtn.textContent = "開始";
 
-        setStatus("步驟 4/4：正在即時生成「摘要」、「條列重點」與「完整逐字稿」...");
-        const streamUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:streamGenerateContent?alt=sse&key=${apiKey}`;
+        const totalElapsedSec = (now - startTimeMs) / 1000.0;
+        const finalLapSec = (now - lapStartMs) / 1000.0;
 
-        const promptText = `請仔細聆聽這段 Podcast 音檔，並嚴格依照以下三個區塊的標記順序輸出內容（請務必保留 ===SUMMARY===、===KEYPOINTS===、===TRANSCRIPT=== 這三個英文標記，不要修改標記文字）：
+        recordNewLap(now, true);
 
-===SUMMARY===
-請用繁體中文撰寫這集節目的「內容摘要」（約 300～500 字，包含節目核心主題、討論脈絡與整體結論）。
+        swElapsedDisplay.textContent = formatStopwatchSeconds(totalElapsedSec);
+        swRunningLapDisplay.textContent = formatStopwatchSeconds(finalLapSec);
+        swRunningLapLabel.textContent = `分段時間 (Lap ${recordedLaps.length})`;
 
-===KEYPOINTS===
-請用繁體中文以「條列式（Bullet points）」整理出這集節目的所有關鍵重點、核心觀點、提到的具體人物/數據/事件與結論（請分主題清楚條列）。
+        const totalNominalDistance = recordedLaps.length * swLapDist;
+        const totalActualDistance = recordedLaps.reduce((sum, item) => sum + item.actualDist, 0);
+        const totalMetrics = calcSwMetrics(totalActualDistance, totalElapsedSec);
 
-===TRANSCRIPT===
-請將這段 Podcast 音檔轉錄為完整、從頭到尾不省略的逐字稿。請自動區分不同講者（例如：講者 A、講者 B 或主持人、來賓），並每隔一個段落標註大致的時間戳記 [MM:SS]。逐字稿請維持原音檔的語言輸出。`;
-
-        const geminiRes = await requestGeminiStreamWithRetry(streamUrl, {
-          contents: [
-            {
-              role: "user",
-              parts: [
-                { file_data: { mime_type: fileInfo.mimeType || "audio/mpeg", file_uri: fileInfo.uri } },
-                { text: promptText }
-              ]
-            }
-          ],
-          generationConfig: { temperature: 0.2 }
-        });
-
-        const reader = geminiRes.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        let buffer = "";
-        let fullOutput = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop();
-
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const jsonStr = line.slice(6).trim();
-              if (!jsonStr || jsonStr === "[DONE]") continue;
-              try {
-                const data = JSON.parse(jsonStr);
-                const textChunk = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                fullOutput += textChunk;
-                renderSections(fullOutput);
-              } catch (e) {}
-            }
-          }
-        }
-
-        setStatus("✅ 摘要、條列重點與逐字稿皆已生成完成！");
-      } catch (err) {
-        setStatus(`❌ 發生錯誤：${err.message}`);
+        swTotalTitle.textContent = `🏁 全程總計 (${totalNominalDistance}m / ${recordedLaps.length}圈)`;
+        swTotalTime.textContent  = `${formatStopwatchSeconds(totalElapsedSec)}秒`;
+        swTotalSpeed.textContent = `${totalMetrics.speedKmh.toFixed(1)} km/h`;
+        swTotalRpm.textContent   = `${totalMetrics.rpm.toFixed(1)} RPM`;
+        swTotalCard.classList.add("visible");
       }
+    });
+
+    function resetStopwatch() {
+      cancelAnimationFrame(rafId);
+      swState = "IDLE";
+      recordedLaps = [];
+      swStartStopBtn.textContent = "開始";
+      swElapsedDisplay.textContent = "00.00";
+      swRunningLapDisplay.textContent = "00.00";
+      swRunningLapLabel.textContent = "分段時間 (Lap 1)";
+      swFrozenLapTime.textContent = "0.0";
+      swFrozenLapNum.textContent = "上圈秒數";
+      swTotalCard.classList.remove("visible");
+      renderLapsList();
     }
 
-    function copyCurrentTab() {
-      const text = document.getElementById(`pane-${activeTab}`).textContent;
-      if (!text) return;
-      navigator.clipboard.writeText(text);
-      const tabNames = { transcript: "完整逐字稿", summary: "內容摘要", keypoints: "條列式重點" };
-      alert(`已複製「${tabNames[activeTab]}」到剪貼簿！`);
-    }
+    // 右側灰色按鈕：計時中按為「分段」，停止後按為「歸零」
+    swLapResetBtn.addEventListener("click", () => {
+      if (swState === "RUNNING") {
+        const now = performance.now();
+        recordNewLap(now, false);
+        swRunningLapLabel.textContent = `分段時間 (Lap ${recordedLaps.length + 1})`;
+      } else if (swState === "STOPPED") {
+        resetStopwatch();
+      }
+    });
 
-    function downloadCurrentTab() {
-      const text = document.getElementById(`pane-${activeTab}`).textContent;
-      if (!text) return;
-      const tabNames = { transcript: "逐字稿", summary: "內容摘要", keypoints: "條列重點" };
-      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `${currentTitle}_${tabNames[activeTab]}.txt`;
-      a.click();
-    }
-
-    function downloadAll() {
-      const sum = document.getElementById("pane-summary").textContent;
-      const kp = document.getElementById("pane-keypoints").textContent;
-      const tr = document.getElementById("pane-transcript").textContent;
-      const combined = `【節目名稱】${currentTitle}\n\n====================\n📝 內容摘要\n====================\n${sum}\n\n====================\n📌 條列式重點\n====================\n${kp}\n\n====================\n📄 完整逐字稿\n====================\n${tr}\n`;
-      const blob = new Blob([combined], { type: "text/plain;charset=utf-8" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `${currentTitle}_完整報告.txt`;
-      a.click();
-    }
+    // 初次啟動載入
+    updateCalculations();
+    updateSwHeader();
   </script>
 </body>
 </html>
