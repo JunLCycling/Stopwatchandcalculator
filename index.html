@@ -8,6 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="齒比與碼錶" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#000000" />
   <title>RATIOS 齒比計算器 & 迴轉碼錶</title>
 
@@ -569,7 +570,7 @@
     .btn-red { background-color: var(--red); }
     .btn-grey { background-color: var(--grey-btn); }
 
-    /* 即時訊號偵測狀態列 */
+    /* 即時訊號與離線快取狀態列 */
     .signal-debug-bar {
       font-size: 11.5px;
       font-weight: 600;
@@ -952,7 +953,7 @@
         </div>
 
         <div id="sw-laps-container" class="sw-right-box">
-          <div class="sw-empty-hint">尚無分段紀錄<br>開啟右上「🖱️滑鼠盲按」後：<br>【左鍵 = 開始/停止】<br>【撥動滾輪 或 右鍵 = 分段/歸零】</div>
+          <div class="sw-empty-hint">尚無分段紀錄<br>開啟右上「🖱️滑鼠盲按」後：<br>【全畫面左鍵 = 開始/停止】<br>【撥動滾輪 或 右鍵 = 分段/歸零】</div>
         </div>
       </div>
 
@@ -968,7 +969,7 @@
             <span id="sw-lap-reset-hint" class="sw-btn-key-hint">[D / 側鍵5]</span>
           </button>
         </div>
-        <div id="signal-debug-bar" class="signal-debug-bar">📡 訊號偵測：等待按鍵輸入...</div>
+        <div id="signal-debug-bar" class="signal-debug-bar">📡 狀態：正在檢查離線快取...</div>
       </div>
     </div>
   </div>
@@ -1321,7 +1322,15 @@
     const toggleBlindModeBtn  = document.getElementById("toggle-blind-mode-btn");
     const signalDebugBar      = document.getElementById("signal-debug-bar");
 
-    let mouseBlindMode = false;
+    let mouseBlindMode = localStorage.getItem("mouseBlindMode") === "true";
+
+    function syncBlindModeUI() {
+      toggleBlindModeBtn.classList.toggle("active", mouseBlindMode);
+      toggleBlindModeBtn.textContent = mouseBlindMode ? "🖱️ 滑鼠盲按: 開啟" : "🖱️ 滑鼠盲按: 關";
+      swStartStopHint.textContent = mouseBlindMode ? "[全畫面左鍵]" : "[S / 側鍵4]";
+      swLapResetHint.textContent  = mouseBlindMode ? "[滾輪 / 右鍵]" : "[D / 側鍵5]";
+    }
+    syncBlindModeUI();
 
     function updateSwHeader() {
       swGearDisplay.textContent = `${swChainring}t x ${swSprocket}t · ${tireSpecs[swTireIndex].name}`;
@@ -1330,19 +1339,16 @@
 
     function logSignal(msg) {
       if (signalDebugBar) {
-        signalDebugBar.textContent = `📡 訊號偵測：${msg}`;
+        signalDebugBar.textContent = `📡 ${msg}`;
       }
     }
 
-    // 切換「滑鼠盲按模式」（左鍵=開始/停止；滾輪撥動或右鍵=分段/歸零）
     toggleBlindModeBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       mouseBlindMode = !mouseBlindMode;
-      toggleBlindModeBtn.classList.toggle("active", mouseBlindMode);
-      toggleBlindModeBtn.textContent = mouseBlindMode ? "🖱️ 滑鼠盲按: 開啟" : "🖱️ 滑鼠盲按: 關";
-      swStartStopHint.textContent = mouseBlindMode ? "[左鍵 / S]" : "[S / 側鍵4]";
-      swLapResetHint.textContent  = mouseBlindMode ? "[滾輪 / 右鍵]" : "[D / 側鍵5]";
-      logSignal(mouseBlindMode ? "已開啟盲按（左鍵=開始/停止，撥滾輪或右鍵=分段）" : "已關閉滑鼠盲按");
+      localStorage.setItem("mouseBlindMode", mouseBlindMode);
+      syncBlindModeUI();
+      logSignal(mouseBlindMode ? "已開啟盲按（全畫面左鍵=開始/停止，撥滾輪=分段）" : "已關閉滑鼠盲按");
     });
 
     // 初始化第二頁設定滾輪（分圈距離、前齒、後齒、輪胎規格）
@@ -1425,7 +1431,7 @@
 
     function renderLapsList() {
       if (recordedLaps.length === 0) {
-        swLapsContainer.innerHTML = `<div class="sw-empty-hint">尚無分段紀錄<br>開啟右上「🖱️滑鼠盲按」後：<br>【左鍵 = 開始/停止】<br>【撥動滾輪 或 右鍵 = 分段/歸零】</div>`;
+        swLapsContainer.innerHTML = `<div class="sw-empty-hint">尚無分段紀錄<br>開啟右上「🖱️滑鼠盲按」後：<br>【全畫面左鍵 = 開始/停止】<br>【撥動滾輪 或 右鍵 = 分段/歸零】</div>`;
         return;
       }
 
@@ -1554,7 +1560,7 @@
     }
 
     // ==========================================
-    // 7. 圓形按鈕本體觸發、鍵盤 (S/D)、側鍵 (4/5)、滾輪與盲按控制
+    // 7. 圓形按鈕本體觸發、鍵盤 (S/D)、側鍵 (4/5)、滾輪與全畫面左鍵盲按控制
     // ==========================================
     let lastRemoteTriggerMs = 0;
 
@@ -1576,7 +1582,6 @@
       return isStopwatchActive && isModalClosed;
     }
 
-    // 畫面上的紅色「開始/停止」與灰色「分段/歸零」按鈕本體點擊（永遠獨立運作，不被盲按攔截）
     swStartStopBtn.addEventListener("click", () => {
       if (isDebounced()) return;
       logSignal("點擊畫面【開始/停止】鈕");
@@ -1608,11 +1613,10 @@
       }
     });
 
-    // 2) 滑鼠按鍵監聽（排除紅、灰兩顆按鈕本體，避免手指點「分段」時誤觸「開始/停止」）
+    // 2) 滑鼠按鍵監聽（排除紅、灰兩顆按鈕本體，其餘全畫面皆支援左鍵盲按）
     window.addEventListener("pointerdown", (e) => {
       if (!canTriggerRemoteControl()) return;
 
-      // 電腦瀏覽器：原始側鍵 4 (button 3) 與 側鍵 5 (button 4)
       if (e.button === 3) {
         e.preventDefault();
         if (isDebounced()) return;
@@ -1629,7 +1633,6 @@
         return;
       }
 
-      // 若是直接點在「開始/停止鈕」、「分段鈕」、「頂部導覽列」或「盲按開關」上，交給按鈕自己處理，不進入全畫面盲按攔截
       if (
         e.target.closest(".top-bar") ||
         e.target.closest("#toggle-blind-mode-btn") ||
@@ -1639,7 +1642,6 @@
         return;
       }
 
-      // 在「🖱️ 滑鼠盲按模式」下，且點擊在按鈕以外的空白區域時：
       if (mouseBlindMode) {
         if (e.button === 2 || e.button === 1) {
           e.preventDefault();
@@ -1647,11 +1649,10 @@
           logSignal(`滑鼠 ${e.button === 2 ? "右鍵" : "中鍵"} -> 分段/歸零`);
           flashButtonVisual(swLapResetBtn);
           handleLapResetAction();
-       } else if (e.button === 0) {
-          // 僅限滑鼠左鍵（排除手指觸控空白處誤觸）
+        } else if (e.button === 0) {
           e.preventDefault();
           if (isDebounced()) return;
-          logSignal("滑鼠左鍵 (Button 0) -> 開始/停止");
+          logSignal("盲按左鍵 (全畫面) -> 開始/停止");
           flashButtonVisual(swStartStopBtn);
           handleStartStopAction();
         }
@@ -1672,7 +1673,7 @@
       }
     });
 
-    // 4) 滑鼠滾輪撥動監聽 (wheel)：在盲按模式下，撥一下滾輪直接觸發「分段 / 歸零」（iPad 免設定 100% 支援）
+    // 4) 滑鼠滾輪撥動監聽 (wheel)：在盲按模式下，撥一下滾輪直接觸發「分段 / 歸零」
     let lastWheelRawMs = 0;
     window.addEventListener("wheel", (e) => {
       if (!mouseBlindMode || !canTriggerRemoteControl()) return;
@@ -1682,7 +1683,6 @@
       const gap = now - lastWheelRawMs;
       lastWheelRawMs = now;
 
-      // 防滾輪慣性連發：距離上一個滾輪微動訊號需超過 180ms（代表是手指新撥動的一下）才觸發
       if (gap < 180) return;
       if (isDebounced()) return;
 
@@ -1691,7 +1691,6 @@
       handleLapResetAction();
     }, { passive: false });
 
-    // 阻擋電腦瀏覽器側鍵預設上一頁/下一頁跳轉
     ["mouseup", "auxclick"].forEach((evtName) => {
       window.addEventListener(evtName, (e) => {
         if (!canTriggerRemoteControl()) return;
@@ -1705,6 +1704,32 @@
     // 初次啟動載入
     updateCalculations();
     updateSwHeader();
+
+    // ==========================================
+    // 8. Service Worker 永久離線快取註冊與前端雙重寫入
+    // ==========================================
+    async function initOfflineSupport() {
+      if (!("serviceWorker" in navigator)) {
+        logSignal("⚠️ 此瀏覽器不支援離線快取");
+        return;
+      }
+      try {
+        await navigator.serviceWorker.register("./sw.js", { scope: "./" });
+        await navigator.serviceWorker.ready;
+
+        // 前端雙重保險：主動將當前完整網址與 index.html 寫入快取區
+        if ("caches" in window) {
+          const cache = await caches.open("ratios-sw-cache-v2");
+          await cache.addAll([window.location.href, "./", "./index.html"]).catch(() => {});
+        }
+
+        logSignal("✅ 離線快取已就緒（可關閉網路離線使用）");
+      } catch (err) {
+        logSignal("⚠️ 離線未啟用：請確認 GitHub 已建立 sw.js 檔案");
+      }
+    }
+
+    window.addEventListener("load", initOfflineSupport);
   </script>
 </body>
 </html>
