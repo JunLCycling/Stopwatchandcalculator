@@ -1647,7 +1647,7 @@
           logSignal(`滑鼠 ${e.button === 2 ? "右鍵" : "中鍵"} -> 分段/歸零`);
           flashButtonVisual(swLapResetBtn);
           handleLapResetAction();
-        } else if (e.button === 0 && e.pointerType !== "touch") {
+       } else if (e.button === 0) {
           // 僅限滑鼠左鍵（排除手指觸控空白處誤觸）
           e.preventDefault();
           if (isDebounced()) return;
