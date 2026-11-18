@@ -506,19 +506,34 @@
       height: 86px;
       border-radius: 50%;
       border: none;
-      font-size: 20px;
-      font-weight: 700;
       color: #ffffff;
       cursor: pointer;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      gap: 2px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-      transition: transform 0.08s ease;
+      transition: transform 0.08s ease, filter 0.08s ease;
     }
 
-    .sw-circle-btn:active {
-      transform: scale(0.94);
+    .sw-btn-main-text {
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .sw-btn-key-hint {
+      font-size: 11px;
+      font-weight: 700;
+      opacity: 0.78;
+      letter-spacing: 0.5px;
+    }
+
+    .sw-circle-btn:active,
+    .sw-circle-btn.key-pressed {
+      transform: scale(0.92);
+      filter: brightness(1.25);
     }
 
     .btn-red { background-color: var(--red); }
@@ -767,7 +782,10 @@
       .sw-circle-btn {
         width: 72px;
         height: 72px;
-        font-size: 18px;
+      }
+
+      .sw-btn-main-text {
+        font-size: 17px;
       }
 
       .modal-sheet {
@@ -882,14 +900,20 @@
         </div>
 
         <div id="sw-laps-container" class="sw-right-box">
-          <div class="sw-empty-hint">尚無分段紀錄<br>開始後按「分段」記錄各圈</div>
+          <div class="sw-empty-hint">尚無分段紀錄<br>按「開始 (S)」後按「分段 (D)」</div>
         </div>
       </div>
 
-      <!-- 4. 控制鍵：直向在底部水平排列，橫向在右側垂直排列 -->
+      <!-- 4. 控制鍵：支援觸控與藍牙鍵盤/滑鼠宏 (S = 開始/停止, D = 分段/歸零) -->
       <div class="sw-controls">
-        <button id="sw-start-stop-btn" class="sw-circle-btn btn-red" type="button">開始</button>
-        <button id="sw-lap-reset-btn" class="sw-circle-btn btn-grey" type="button">分段</button>
+        <button id="sw-start-stop-btn" class="sw-circle-btn btn-red" type="button">
+          <span id="sw-start-stop-text" class="sw-btn-main-text">開始</span>
+          <span class="sw-btn-key-hint">[S]</span>
+        </button>
+        <button id="sw-lap-reset-btn" class="sw-circle-btn btn-grey" type="button">
+          <span id="sw-lap-reset-text" class="sw-btn-main-text">分段</span>
+          <span class="sw-btn-key-hint">[D]</span>
+        </button>
       </div>
     </div>
   </div>
@@ -1149,7 +1173,76 @@
     tireModal.addEventListener("click", (e) => { if (e.target === tireModal) tireModal.classList.remove("open"); });
 
     // ==========================================
-    // 5. 第二頁：迴轉碼錶邏輯與設定選單
+    // 5. 盲按提示音效 & 螢幕恆亮控制 (Wake Lock)
+    // ==========================================
+    let audioCtx = null;
+
+    function playBeep(type) {
+      try {
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) audioCtx = new AudioContextClass();
+        }
+        if (!audioCtx) return;
+        if (audioCtx.state === "suspended") audioCtx.resume();
+
+        const now = audioCtx.currentTime;
+        const makeTone = (freq, startOffset, duration) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, now + startOffset);
+          gain.gain.setValueAtTime(0.25, now + startOffset);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + startOffset + duration);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + startOffset);
+          osc.stop(now + startOffset + duration);
+        };
+
+        if (type === "start") {
+          makeTone(980, 0, 0.11); // 開始：高音單響
+        } else if (type === "lap") {
+          makeTone(1200, 0, 0.08); // 分段：清脆高音短響
+        } else if (type === "stop") {
+          makeTone(880, 0, 0.09);    // 停止：雙響
+          makeTone(660, 0.12, 0.15);
+        } else if (type === "reset") {
+          makeTone(440, 0, 0.1);   // 歸零：低音單響
+        }
+      } catch (_) {}
+    }
+
+    let wakeLockSentinel = null;
+
+    async function requestWakeLock() {
+      try {
+        if ("wakeLock" in navigator && !wakeLockSentinel) {
+          wakeLockSentinel = await navigator.wakeLock.request("screen");
+          wakeLockSentinel.addEventListener("release", () => {
+            wakeLockSentinel = null;
+          });
+        }
+      } catch (_) {}
+    }
+
+    async function releaseWakeLock() {
+      try {
+        if (wakeLockSentinel) {
+          await wakeLockSentinel.release();
+          wakeLockSentinel = null;
+        }
+      } catch (_) {}
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && swState === "RUNNING") {
+        requestWakeLock();
+      }
+    });
+
+    // ==========================================
+    // 6. 第二頁：迴轉碼錶邏輯與設定選單
     // ==========================================
     const swGearDisplay       = document.getElementById("sw-gear-display");
     const swDistBadge         = document.getElementById("sw-dist-badge");
@@ -1165,7 +1258,9 @@
     const swTotalSpeed        = document.getElementById("sw-total-speed");
     const swTotalRpm          = document.getElementById("sw-total-rpm");
     const swStartStopBtn      = document.getElementById("sw-start-stop-btn");
+    const swStartStopText     = document.getElementById("sw-start-stop-text");
     const swLapResetBtn       = document.getElementById("sw-lap-reset-btn");
+    const swLapResetText      = document.getElementById("sw-lap-reset-text");
 
     function updateSwHeader() {
       swGearDisplay.textContent = `${swChainring}t x ${swSprocket}t · ${tireSpecs[swTireIndex].name}`;
@@ -1254,7 +1349,7 @@
 
     function renderLapsList() {
       if (recordedLaps.length === 0) {
-        swLapsContainer.innerHTML = `<div class="sw-empty-hint">尚無分段紀錄<br>開始後按「分段」記錄各圈</div>`;
+        swLapsContainer.innerHTML = `<div class="sw-empty-hint">尚無分段紀錄<br>按「開始 (S)」後按「分段 (D)」</div>`;
         return;
       }
 
@@ -1309,24 +1404,30 @@
       rafId = requestAnimationFrame(tick);
     }
 
-    // 左側紅色按鈕：開始 / 停止 (模式 A)
-    swStartStopBtn.addEventListener("click", () => {
+    // 左側紅色按鈕 [S]：開始 / 停止 (模式 A)
+    function handleStartStopAction() {
       if (swState === "IDLE" || swState === "STOPPED") {
         if (swState === "STOPPED") {
-          resetStopwatch();
+          resetStopwatch(true);
         }
         const now = performance.now();
         startTimeMs = now;
         lapStartMs = now;
         swState = "RUNNING";
-        swStartStopBtn.textContent = "停止";
+        swStartStopText.textContent = "停止";
+        swLapResetText.textContent = "分段";
         swTotalCard.classList.remove("visible");
+        playBeep("start");
+        requestWakeLock();
         rafId = requestAnimationFrame(tick);
       } else if (swState === "RUNNING") {
         const now = performance.now();
         cancelAnimationFrame(rafId);
         swState = "STOPPED";
-        swStartStopBtn.textContent = "開始";
+        swStartStopText.textContent = "開始";
+        swLapResetText.textContent = "歸零";
+        playBeep("stop");
+        releaseWakeLock();
 
         const totalElapsedSec = (now - startTimeMs) / 1000.0;
         const finalLapSec = (now - lapStartMs) / 1000.0;
@@ -1347,30 +1448,66 @@
         swTotalRpm.textContent   = `${totalMetrics.rpm.toFixed(1)} RPM`;
         swTotalCard.classList.add("visible");
       }
-    });
+    }
 
-    function resetStopwatch() {
+    function resetStopwatch(silent = false) {
       cancelAnimationFrame(rafId);
       swState = "IDLE";
       recordedLaps = [];
-      swStartStopBtn.textContent = "開始";
+      swStartStopText.textContent = "開始";
+      swLapResetText.textContent = "分段";
       swElapsedDisplay.textContent = "00.00";
       swRunningLapDisplay.textContent = "00.00";
       swRunningLapLabel.textContent = "分段時間 (Lap 1)";
       swFrozenLapTime.textContent = "0.0";
       swFrozenLapNum.textContent = "上圈秒數";
       swTotalCard.classList.remove("visible");
+      releaseWakeLock();
+      if (!silent) playBeep("reset");
       renderLapsList();
     }
 
-    // 右側灰色按鈕：計時中按為「分段」，停止後按為「歸零」
-    swLapResetBtn.addEventListener("click", () => {
+    // 右側灰色按鈕 [D]：計時中按為「分段」，停止後按為「歸零」
+    function handleLapResetAction() {
       if (swState === "RUNNING") {
         const now = performance.now();
+        playBeep("lap");
         recordNewLap(now, false);
         swRunningLapLabel.textContent = `分段時間 (Lap ${recordedLaps.length + 1})`;
       } else if (swState === "STOPPED") {
-        resetStopwatch();
+        resetStopwatch(false);
+      }
+    }
+
+    swStartStopBtn.addEventListener("click", handleStartStopAction);
+    swLapResetBtn.addEventListener("click", handleLapResetAction);
+
+    // ==========================================
+    // 7. 藍牙滑鼠自定義鍵 / 鍵盤遠端觸發監聽 (S / D)
+    // ==========================================
+    function flashButtonVisual(btnEl) {
+      btnEl.classList.add("key-pressed");
+      setTimeout(() => btnEl.classList.remove("key-pressed"), 120);
+    }
+
+    window.addEventListener("keydown", (e) => {
+      if (e.repeat) return; // 防止按住不放時連續重複觸發
+
+      // 僅在「迴轉碼錶」分頁開啟且設定視窗未彈出時攔截 S 與 D 鍵
+      const isStopwatchActive = pageSw.classList.contains("active");
+      const isModalClosed = !swSettingsModal.classList.contains("open") && !tireModal.classList.contains("open");
+      if (!isStopwatchActive || !isModalClosed) return;
+
+      const keyLower = (e.key || "").toLowerCase();
+
+      if (e.code === "KeyS" || keyLower === "s") {
+        e.preventDefault();
+        flashButtonVisual(swStartStopBtn);
+        handleStartStopAction();
+      } else if (e.code === "KeyD" || keyLower === "d") {
+        e.preventDefault();
+        flashButtonVisual(swLapResetBtn);
+        handleLapResetAction();
       }
     });
 
