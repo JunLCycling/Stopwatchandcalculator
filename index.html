@@ -1517,7 +1517,7 @@
     window.addEventListener("mousedown", (e) => {
       if (!canTriggerRemoteControl()) return;
 
-      if (e.button === 3) {
+      if (e.button === 5) {
         e.preventDefault();
         e.stopPropagation();
         flashButtonVisual(swStartStopBtn);
@@ -1534,7 +1534,7 @@
     ["mouseup", "auxclick"].forEach((evtName) => {
       window.addEventListener(evtName, (e) => {
         if (!canTriggerRemoteControl()) return;
-        if (e.button === 3 || e.button === 4) {
+        if (e.button === 5 || e.button === 4) {
           e.preventDefault();
           e.stopPropagation();
         }
