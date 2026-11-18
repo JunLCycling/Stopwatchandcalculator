@@ -334,14 +334,14 @@
       margin-left: 4px;
     }
 
-    /* 滑鼠左右鍵盲按模式開關按鈕 */
+    /* 滑鼠盲按模式開關按鈕 */
     .blind-mode-btn {
       background: #1c1c1e;
       border: 1.5px solid rgba(255, 255, 255, 0.3);
       color: #aeaeb2;
       font-size: 12px;
       font-weight: 700;
-      padding: 5px 9px;
+      padding: 5px 10px;
       border-radius: 999px;
       cursor: pointer;
       white-space: nowrap;
@@ -512,9 +512,9 @@
       margin: auto;
       text-align: center;
       color: #636366;
-      font-size: 13.5px;
+      font-size: 13px;
       font-weight: 600;
-      line-height: 1.5;
+      line-height: 1.55;
     }
 
     .sw-bottom-area {
@@ -556,7 +556,7 @@
     .sw-btn-key-hint {
       font-size: 10px;
       font-weight: 700;
-      opacity: 0.82;
+      opacity: 0.85;
       letter-spacing: 0.2px;
     }
 
@@ -904,13 +904,13 @@
          頁面 2：迴轉碼錶 (Solo TT Stopwatch)
          ========================================== -->
     <div id="page-stopwatch" class="page-view">
-      <!-- 1. 上方：所選的前齒、後齒、輪胎規格與「滑鼠左右鍵盲按開關」 -->
+      <!-- 1. 上方：所選的前齒、後齒、輪胎規格與「滑鼠盲按開關」 -->
       <div class="sw-gear-header">
         <div>
           <span id="sw-gear-display" class="sw-gear-title">50t x 13t · 700 X 20</span>
           <span id="sw-dist-badge" class="sw-gear-sub">(250m)</span>
         </div>
-        <button id="toggle-blind-mode-btn" class="blind-mode-btn" type="button">🖱️ 左右鍵盲按: 關</button>
+        <button id="toggle-blind-mode-btn" class="blind-mode-btn" type="button">🖱️ 滑鼠盲按: 關</button>
       </div>
 
       <!-- 2. 累計時間 與 分段時間 並排顯示 -->
@@ -952,7 +952,7 @@
         </div>
 
         <div id="sw-laps-container" class="sw-right-box">
-          <div class="sw-empty-hint">尚無分段紀錄<br>iPad 用滑鼠建議開啟右上「🖱️左右鍵盲按」<br>即可用【左鍵=開始/停止】【右鍵=分段】</div>
+          <div class="sw-empty-hint">尚無分段紀錄<br>開啟右上「🖱️滑鼠盲按」後：<br>【左鍵 = 開始/停止】<br>【撥動滾輪 或 右鍵 = 分段/歸零】</div>
         </div>
       </div>
 
@@ -1334,15 +1334,15 @@
       }
     }
 
-    // 切換「滑鼠左右鍵全畫面盲按模式」
+    // 切換「滑鼠盲按模式」（左鍵=開始/停止；滾輪撥動或右鍵=分段/歸零）
     toggleBlindModeBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       mouseBlindMode = !mouseBlindMode;
       toggleBlindModeBtn.classList.toggle("active", mouseBlindMode);
-      toggleBlindModeBtn.textContent = mouseBlindMode ? "🖱️ 左右鍵盲按: 開啟" : "🖱️ 左右鍵盲按: 關";
+      toggleBlindModeBtn.textContent = mouseBlindMode ? "🖱️ 滑鼠盲按: 開啟" : "🖱️ 滑鼠盲按: 關";
       swStartStopHint.textContent = mouseBlindMode ? "[左鍵 / S]" : "[S / 側鍵4]";
-      swLapResetHint.textContent  = mouseBlindMode ? "[右鍵 / D]" : "[D / 側鍵5]";
-      logSignal(mouseBlindMode ? "已開啟盲按（全畫面左鍵=開始/停止，右鍵=分段）" : "已關閉滑鼠左右鍵盲按");
+      swLapResetHint.textContent  = mouseBlindMode ? "[滾輪 / 右鍵]" : "[D / 側鍵5]";
+      logSignal(mouseBlindMode ? "已開啟盲按（左鍵=開始/停止，撥滾輪或右鍵=分段）" : "已關閉滑鼠盲按");
     });
 
     // 初始化第二頁設定滾輪（分圈距離、前齒、後齒、輪胎規格）
@@ -1425,7 +1425,7 @@
 
     function renderLapsList() {
       if (recordedLaps.length === 0) {
-        swLapsContainer.innerHTML = `<div class="sw-empty-hint">尚無分段紀錄<br>iPad 用滑鼠建議開啟右上「🖱️左右鍵盲按」<br>即可用【左鍵=開始/停止】【右鍵=分段】</div>`;
+        swLapsContainer.innerHTML = `<div class="sw-empty-hint">尚無分段紀錄<br>開啟右上「🖱️滑鼠盲按」後：<br>【左鍵 = 開始/停止】<br>【撥動滾輪 或 右鍵 = 分段/歸零】</div>`;
         return;
       }
 
@@ -1553,18 +1553,8 @@
       }
     }
 
-    swStartStopBtn.addEventListener("click", (e) => {
-      if (mouseBlindMode) return; // 盲按模式由全域 pointerdown 統一處理，避免重複觸發
-      handleStartStopAction();
-    });
-
-    swLapResetBtn.addEventListener("click", (e) => {
-      if (mouseBlindMode) return;
-      handleLapResetAction();
-    });
-
     // ==========================================
-    // 7. 鍵盤 (S/D)、電腦側鍵 (Button 4/5) 與 iPad 滑鼠左右鍵盲按監聽
+    // 7. 圓形按鈕本體觸發、鍵盤 (S/D)、側鍵 (4/5)、滾輪與盲按控制
     // ==========================================
     let lastRemoteTriggerMs = 0;
 
@@ -1586,6 +1576,19 @@
       return isStopwatchActive && isModalClosed;
     }
 
+    // 畫面上的紅色「開始/停止」與灰色「分段/歸零」按鈕本體點擊（永遠獨立運作，不被盲按攔截）
+    swStartStopBtn.addEventListener("click", () => {
+      if (isDebounced()) return;
+      logSignal("點擊畫面【開始/停止】鈕");
+      handleStartStopAction();
+    });
+
+    swLapResetBtn.addEventListener("click", () => {
+      if (isDebounced()) return;
+      logSignal("點擊畫面【分段/歸零】鈕");
+      handleLapResetAction();
+    });
+
     // 1) 鍵盤按鍵監聽 (S 與 D)
     window.addEventListener("keydown", (e) => {
       if (e.repeat || !canTriggerRemoteControl()) return;
@@ -1605,55 +1608,62 @@
       }
     });
 
-    // 2) 滑鼠按鍵監聽（支援 pointerdown 兼容 iPadOS 與電腦瀏覽器）
+    // 2) 滑鼠按鍵監聽（排除紅、灰兩顆按鈕本體，避免手指點「分段」時誤觸「開始/停止」）
     window.addEventListener("pointerdown", (e) => {
       if (!canTriggerRemoteControl()) return;
-
-      // 忽略點擊頂部導覽列或「左右鍵盲按開關」本身
-      if (e.target.closest(".top-bar") || e.target.closest("#toggle-blind-mode-btn")) return;
-
-      // 記錄偵測到的按鍵編號
-      if (e.pointerType === "mouse" || e.button > 0) {
-        logSignal(`滑鼠 Button ${e.button} (${e.button === 0 ? "左鍵" : e.button === 2 ? "右鍵" : e.button === 1 ? "中鍵" : "側鍵"})`);
-      }
 
       // 電腦瀏覽器：原始側鍵 4 (button 3) 與 側鍵 5 (button 4)
       if (e.button === 3) {
         e.preventDefault();
         if (isDebounced()) return;
+        logSignal("滑鼠側鍵 4 (Button 3) -> 開始/停止");
         flashButtonVisual(swStartStopBtn);
         handleStartStopAction();
         return;
       } else if (e.button === 4) {
         e.preventDefault();
         if (isDebounced()) return;
+        logSignal("滑鼠側鍵 5 (Button 4) -> 分段/歸零");
         flashButtonVisual(swLapResetBtn);
         handleLapResetAction();
         return;
       }
 
-      // iPad / 電腦「🖱️ 左右鍵盲按模式」開啟時：全畫面左鍵 = 開始/停止，右鍵(或中鍵) = 分段/歸零
+      // 若是直接點在「開始/停止鈕」、「分段鈕」、「頂部導覽列」或「盲按開關」上，交給按鈕自己處理，不進入全畫面盲按攔截
+      if (
+        e.target.closest(".top-bar") ||
+        e.target.closest("#toggle-blind-mode-btn") ||
+        e.target.closest("#sw-start-stop-btn") ||
+        e.target.closest("#sw-lap-reset-btn")
+      ) {
+        return;
+      }
+
+      // 在「🖱️ 滑鼠盲按模式」下，且點擊在按鈕以外的空白區域時：
       if (mouseBlindMode) {
-        if (e.button === 0) {
+        if (e.button === 2 || e.button === 1) {
           e.preventDefault();
           if (isDebounced()) return;
-          flashButtonVisual(swStartStopBtn);
-          handleStartStopAction();
-        } else if (e.button === 2 || e.button === 1) {
-          e.preventDefault();
-          if (isDebounced()) return;
+          logSignal(`滑鼠 ${e.button === 2 ? "右鍵" : "中鍵"} -> 分段/歸零`);
           flashButtonVisual(swLapResetBtn);
           handleLapResetAction();
+        } else if (e.button === 0 && e.pointerType !== "touch") {
+          // 僅限滑鼠左鍵（排除手指觸控空白處誤觸）
+          e.preventDefault();
+          if (isDebounced()) return;
+          logSignal("滑鼠左鍵 (Button 0) -> 開始/停止");
+          flashButtonVisual(swStartStopBtn);
+          handleStartStopAction();
         }
       }
     });
 
-    // 3) 攔截滑鼠右鍵選單 (contextmenu)，在盲按模式下直接作為「分段 / 歸零」觸發（專為 iPadOS Safari 右鍵設計）
+    // 3) 攔截滑鼠右鍵選單 (contextmenu)：在盲按模式下直接作為「分段 / 歸零」
     window.addEventListener("contextmenu", (e) => {
       if (!canTriggerRemoteControl()) return;
       if (e.target.closest(".top-bar") || e.target.closest("#toggle-blind-mode-btn")) return;
 
-      logSignal("滑鼠右鍵 (contextmenu)");
+      logSignal("滑鼠右鍵 (contextmenu) -> 分段/歸零");
       if (mouseBlindMode) {
         e.preventDefault();
         if (isDebounced()) return;
@@ -1661,6 +1671,25 @@
         handleLapResetAction();
       }
     });
+
+    // 4) 滑鼠滾輪撥動監聽 (wheel)：在盲按模式下，撥一下滾輪直接觸發「分段 / 歸零」（iPad 免設定 100% 支援）
+    let lastWheelRawMs = 0;
+    window.addEventListener("wheel", (e) => {
+      if (!mouseBlindMode || !canTriggerRemoteControl()) return;
+      e.preventDefault();
+
+      const now = performance.now();
+      const gap = now - lastWheelRawMs;
+      lastWheelRawMs = now;
+
+      // 防滾輪慣性連發：距離上一個滾輪微動訊號需超過 180ms（代表是手指新撥動的一下）才觸發
+      if (gap < 180) return;
+      if (isDebounced()) return;
+
+      logSignal("滑鼠滾輪撥動 -> 分段/歸零");
+      flashButtonVisual(swLapResetBtn);
+      handleLapResetAction();
+    }, { passive: false });
 
     // 阻擋電腦瀏覽器側鍵預設上一頁/下一頁跳轉
     ["mouseup", "auxclick"].forEach((evtName) => {
