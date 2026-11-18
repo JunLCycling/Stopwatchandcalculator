@@ -314,45 +314,22 @@
     }
 
     .sw-gear-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 6px;
+      text-align: center;
       padding: 2px 0;
     }
 
     .sw-gear-title {
-      font-size: 19px;
+      font-size: 20px;
       font-weight: 800;
       color: #ffffff;
-      letter-spacing: 0.2px;
+      letter-spacing: 0.3px;
     }
 
     .sw-gear-sub {
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 700;
       color: var(--cyan);
-      margin-left: 4px;
-    }
-
-    /* 滑鼠盲按模式開關按鈕 */
-    .blind-mode-btn {
-      background: #1c1c1e;
-      border: 1.5px solid rgba(255, 255, 255, 0.3);
-      color: #aeaeb2;
-      font-size: 12px;
-      font-weight: 700;
-      padding: 5px 10px;
-      border-radius: 999px;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: all 0.15s ease;
-    }
-
-    .blind-mode-btn.active {
-      background: rgba(48, 209, 88, 0.2);
-      border-color: var(--green);
-      color: var(--green);
+      margin-left: 6px;
     }
 
     .sw-timers-row {
@@ -552,6 +529,7 @@
       font-size: 20px;
       font-weight: 700;
       line-height: 1.1;
+      pointer-events: none;
     }
 
     .sw-btn-key-hint {
@@ -559,6 +537,7 @@
       font-weight: 700;
       opacity: 0.85;
       letter-spacing: 0.2px;
+      pointer-events: none;
     }
 
     .sw-circle-btn:active,
@@ -718,6 +697,7 @@
 
       .sw-gear-header {
         grid-area: header;
+        text-align: left;
         align-self: center;
         padding: 0;
       }
@@ -788,7 +768,7 @@
       .results-card { padding: 14px 16px; gap: 10px; font-size: 18px; }
 
       #page-stopwatch.active { gap: 6px 12px; }
-      .sw-gear-title { font-size: 15.5px; }
+      .sw-gear-title { font-size: 16px; }
       .sw-timers-row { padding: 4px 8px; gap: 8px; }
       .sw-timer-label { font-size: 12px; }
       .sw-elapsed-box, .sw-lap-running-box { font-size: 21px; padding: 2px 8px; }
@@ -844,9 +824,8 @@
 
       /* 第二頁 iPad 橫向放大 */
       #page-stopwatch.active { gap: 14px 20px; }
-      .sw-gear-title { font-size: 23px; }
-      .sw-gear-sub { font-size: 16px; }
-      .blind-mode-btn { font-size: 14px; padding: 7px 14px; }
+      .sw-gear-title { font-size: 24px; }
+      .sw-gear-sub { font-size: 17px; }
 
       .sw-timers-row { padding: 12px 16px; gap: 16px; }
       .sw-timer-label { font-size: 16px; }
@@ -940,16 +919,13 @@
     </div>
 
     <!-- ==========================================
-         頁面 2：迴轉碼錶 (Solo TT Stopwatch)
+         頁面 2：迴轉碼錶 (全畫面盲按常駐開啟)
          ========================================== -->
     <div id="page-stopwatch" class="page-view">
-      <!-- 1. 上方：所選的前齒、後齒、輪胎規格與「滑鼠盲按開關」 -->
+      <!-- 1. 上方：所選的前齒、後齒、輪胎規格與單圈距離 -->
       <div class="sw-gear-header">
-        <div>
-          <span id="sw-gear-display" class="sw-gear-title">50t x 13t · 700 X 20</span>
-          <span id="sw-dist-badge" class="sw-gear-sub">(250m)</span>
-        </div>
-        <button id="toggle-blind-mode-btn" class="blind-mode-btn" type="button">🖱️ 滑鼠盲按: 關</button>
+        <span id="sw-gear-display" class="sw-gear-title">50t x 13t · 700 X 20</span>
+        <span id="sw-dist-badge" class="sw-gear-sub">(250m)</span>
       </div>
 
       <!-- 2. 累計時間 與 分段時間 並排顯示 -->
@@ -991,7 +967,7 @@
         </div>
 
         <div id="sw-laps-container" class="sw-right-box">
-          <div class="sw-empty-hint">尚無分段紀錄<br>開啟右上「🖱️滑鼠盲按」後：<br>【全畫面左鍵 = 開始/停止】<br>【撥動滾輪 或 右鍵 = 分段/歸零】</div>
+          <div class="sw-empty-hint">尚無分段紀錄<br>🖱️ 滑鼠盲按常駐開啟：<br>【全畫面左鍵 / S = 開始/停止】<br>【滾輪 / 右鍵 / 側鍵5 / D = 分段/歸零】</div>
         </div>
       </div>
 
@@ -1000,11 +976,11 @@
         <div class="sw-controls">
           <button id="sw-start-stop-btn" class="sw-circle-btn btn-red" type="button">
             <span id="sw-start-stop-text" class="sw-btn-main-text">開始</span>
-            <span id="sw-start-stop-hint" class="sw-btn-key-hint">[S / 側鍵4]</span>
+            <span id="sw-start-stop-hint" class="sw-btn-key-hint">[左鍵 / S]</span>
           </button>
           <button id="sw-lap-reset-btn" class="sw-circle-btn btn-grey" type="button">
             <span id="sw-lap-reset-text" class="sw-btn-main-text">分段</span>
-            <span id="sw-lap-reset-hint" class="sw-btn-key-hint">[D / 側鍵5]</span>
+            <span id="sw-lap-reset-hint" class="sw-btn-key-hint">[滾輪 / D]</span>
           </button>
         </div>
         <div id="signal-debug-bar" class="signal-debug-bar">📡 狀態：正在檢查離線快取...</div>
@@ -1353,22 +1329,9 @@
     const swTotalRpm          = document.getElementById("sw-total-rpm");
     const swStartStopBtn      = document.getElementById("sw-start-stop-btn");
     const swStartStopText     = document.getElementById("sw-start-stop-text");
-    const swStartStopHint     = document.getElementById("sw-start-stop-hint");
     const swLapResetBtn       = document.getElementById("sw-lap-reset-btn");
     const swLapResetText      = document.getElementById("sw-lap-reset-text");
-    const swLapResetHint      = document.getElementById("sw-lap-reset-hint");
-    const toggleBlindModeBtn  = document.getElementById("toggle-blind-mode-btn");
     const signalDebugBar      = document.getElementById("signal-debug-bar");
-
-    let mouseBlindMode = localStorage.getItem("mouseBlindMode") === "true";
-
-    function syncBlindModeUI() {
-      toggleBlindModeBtn.classList.toggle("active", mouseBlindMode);
-      toggleBlindModeBtn.textContent = mouseBlindMode ? "🖱️ 滑鼠盲按: 開啟" : "🖱️ 滑鼠盲按: 關";
-      swStartStopHint.textContent = mouseBlindMode ? "[全畫面左鍵]" : "[S / 側鍵4]";
-      swLapResetHint.textContent  = mouseBlindMode ? "[滾輪 / 右鍵]" : "[D / 側鍵5]";
-    }
-    syncBlindModeUI();
 
     function updateSwHeader() {
       swGearDisplay.textContent = `${swChainring}t x ${swSprocket}t · ${tireSpecs[swTireIndex].name}`;
@@ -1380,14 +1343,6 @@
         signalDebugBar.textContent = `📡 ${msg}`;
       }
     }
-
-    toggleBlindModeBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      mouseBlindMode = !mouseBlindMode;
-      localStorage.setItem("mouseBlindMode", mouseBlindMode);
-      syncBlindModeUI();
-      logSignal(mouseBlindMode ? "已開啟盲按（全畫面左鍵=開始/停止，撥滾輪=分段）" : "已關閉滑鼠盲按");
-    });
 
     // 初始化第二頁設定滾輪（分圈距離、前齒、後齒、輪胎規格）
     setupWheel("wheel-sw-dist", swLapDistList, swLapDistList.indexOf(swLapDist), v => `${v}m`, (val) => {
@@ -1469,7 +1424,7 @@
 
     function renderLapsList() {
       if (recordedLaps.length === 0) {
-        swLapsContainer.innerHTML = `<div class="sw-empty-hint">尚無分段紀錄<br>開啟右上「🖱️滑鼠盲按」後：<br>【全畫面左鍵 = 開始/停止】<br>【撥動滾輪 或 右鍵 = 分段/歸零】</div>`;
+        swLapsContainer.innerHTML = `<div class="sw-empty-hint">尚無分段紀錄<br>🖱️ 滑鼠盲按常駐開啟：<br>【全畫面左鍵 / S = 開始/停止】<br>【滾輪 / 右鍵 / 側鍵5 / D = 分段/歸零】</div>`;
         return;
       }
 
@@ -1598,15 +1553,31 @@
     }
 
     // ==========================================
-    // 7. 圓形按鈕本體觸發、鍵盤 (S/D)、側鍵 (4/5)、滾輪與全畫面左鍵盲按控制
+    // 7. 常駐盲按與跨事件防衝突控制（徹底杜絕按分段時誤觸開始/停止）
     // ==========================================
-    let lastRemoteTriggerMs = 0;
+    let lastAnyActionMs = 0; // 記錄任何動作的最後觸發時間
+    let lastLapActionMs = 0; // 專記「分段/歸零」最後觸發時間，用來封鎖隨後的假左鍵訊號
 
-    function isDebounced() {
+    // 執行【開始 / 停止】的唯一安全入口
+    function triggerStartStopSafe(sourceLabel) {
       const now = performance.now();
-      if (now - lastRemoteTriggerMs < 80) return true;
-      lastRemoteTriggerMs = now;
-      return false;
+      // 若剛剛才觸發過分段 (350ms 內)，或剛剛才觸發過任何動作 (180ms 內)，一律忽略，防止側鍵或輔助觸控連帶誤觸
+      if (now - lastLapActionMs < 350 || now - lastAnyActionMs < 180) return;
+      lastAnyActionMs = now;
+      logSignal(`${sourceLabel} -> 開始/停止`);
+      flashButtonVisual(swStartStopBtn);
+      handleStartStopAction();
+    }
+
+    // 執行【分段 / 歸零】的唯一安全入口
+    function triggerLapResetSafe(sourceLabel) {
+      const now = performance.now();
+      if (now - lastLapActionMs < 150) return;
+      lastLapActionMs = now;
+      lastAnyActionMs = now;
+      logSignal(`${sourceLabel} -> 分段/歸零`);
+      flashButtonVisual(swLapResetBtn);
+      handleLapResetAction();
     }
 
     function flashButtonVisual(btnEl) {
@@ -1620,101 +1591,112 @@
       return isStopwatchActive && isModalClosed;
     }
 
-    swStartStopBtn.addEventListener("click", () => {
-      if (isDebounced()) return;
-      logSignal("點擊畫面【開始/停止】鈕");
-      handleStartStopAction();
+    // 判斷點擊座標是否落在灰色「分段」按鈕周圍 28px 安全區內（保護 iPad 輔助觸控自訂手勢稍微點偏的情況）
+    function isPointNearLapButton(clientX, clientY) {
+      const rect = swLapResetBtn.getBoundingClientRect();
+      const pad = 28;
+      return (
+        clientX >= rect.left - pad &&
+        clientX <= rect.right + pad &&
+        clientY >= rect.top - pad &&
+        clientY <= rect.bottom + pad
+      );
+    }
+
+    // A) 灰色「分段/歸零」與紅色「開始/停止」圓形按鈕本體：直接由 pointerdown 最優先攔截並阻斷冒泡
+    swLapResetBtn.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0 && e.button !== undefined) return;
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      triggerLapResetSafe("點擊畫面【分段/歸零】鈕");
     });
 
-    swLapResetBtn.addEventListener("click", () => {
-      if (isDebounced()) return;
-      logSignal("點擊畫面【分段/歸零】鈕");
-      handleLapResetAction();
+    swStartStopBtn.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0 && e.button !== undefined) return;
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      triggerStartStopSafe("點擊畫面【開始/停止】鈕");
     });
 
-    // 1) 鍵盤按鍵監聽 (S 與 D)
+    // B) 鍵盤按鍵監聽 (S = 開始/停止, D = 分段/歸零)
     window.addEventListener("keydown", (e) => {
       if (e.repeat || !canTriggerRemoteControl()) return;
       const keyLower = (e.key || "").toLowerCase();
-      logSignal(`鍵盤按鍵 [${e.key}] (${e.code})`);
 
-      if (e.code === "KeyS" || keyLower === "s") {
+      if (e.code === "KeyD" || keyLower === "d") {
         e.preventDefault();
-        if (isDebounced()) return;
-        flashButtonVisual(swStartStopBtn);
-        handleStartStopAction();
-      } else if (e.code === "KeyD" || keyLower === "d") {
+        e.stopPropagation();
+        triggerLapResetSafe(`鍵盤 [${e.key}]`);
+      } else if (e.code === "KeyS" || keyLower === "s") {
         e.preventDefault();
-        if (isDebounced()) return;
-        flashButtonVisual(swLapResetBtn);
-        handleLapResetAction();
+        e.stopPropagation();
+        triggerStartStopSafe(`鍵盤 [${e.key}]`);
       }
-    });
+    }, true);
 
-    // 2) 滑鼠按鍵監聽（排除紅、灰兩顆按鈕本體，其餘全畫面皆支援左鍵盲按）
+    // C) 全畫面滑鼠按鍵監聽（盲按常駐開啟）
     window.addEventListener("pointerdown", (e) => {
       if (!canTriggerRemoteControl()) return;
 
-      if (e.button === 3) {
-        e.preventDefault();
-        if (isDebounced()) return;
-        logSignal("滑鼠側鍵 4 (Button 3) -> 開始/停止");
-        flashButtonVisual(swStartStopBtn);
-        handleStartStopAction();
-        return;
-      } else if (e.button === 4) {
-        e.preventDefault();
-        if (isDebounced()) return;
-        logSignal("滑鼠側鍵 5 (Button 4) -> 分段/歸零");
-        flashButtonVisual(swLapResetBtn);
-        handleLapResetAction();
-        return;
-      }
-
+      // 1. 優先檢查是否為滑鼠分段按鍵：側鍵 5 (button 4)、右鍵 (button 2)、中鍵 (button 1) 或帶右鍵/側鍵遮罩 (buttons 2/4/16)
       if (
-        e.target.closest(".top-bar") ||
-        e.target.closest("#toggle-blind-mode-btn") ||
-        e.target.closest("#sw-start-stop-btn") ||
-        e.target.closest("#sw-lap-reset-btn")
+        e.button === 4 ||
+        e.button === 2 ||
+        e.button === 1 ||
+        (e.buttons & 2) === 2 ||
+        (e.buttons & 16) === 16
       ) {
+        e.preventDefault();
+        e.stopPropagation();
+        const btnName = e.button === 4 || (e.buttons & 16) ? "滑鼠側鍵 5" : e.button === 2 ? "滑鼠右鍵" : "滑鼠中鍵";
+        triggerLapResetSafe(btnName);
         return;
       }
 
-      if (mouseBlindMode) {
-        if (e.button === 2 || e.button === 1) {
-          e.preventDefault();
-          if (isDebounced()) return;
-          logSignal(`滑鼠 ${e.button === 2 ? "右鍵" : "中鍵"} -> 分段/歸零`);
-          flashButtonVisual(swLapResetBtn);
-          handleLapResetAction();
-        } else if (e.button === 0) {
-          e.preventDefault();
-          if (isDebounced()) return;
-          logSignal("盲按左鍵 (全畫面) -> 開始/停止");
-          flashButtonVisual(swStartStopBtn);
-          handleStartStopAction();
-        }
+      // 2. 滑鼠側鍵 4 (button 3 或 buttons 8) -> 開始/停止
+      if (e.button === 3 || (e.buttons & 8) === 8) {
+        e.preventDefault();
+        e.stopPropagation();
+        triggerStartStopSafe("滑鼠側鍵 4");
+        return;
+      }
+
+      // 3. 忽略頂部切換導覽列與滾輪設定區
+      if (e.target.closest(".top-bar") || e.target.closest(".modal-backdrop")) {
+        return;
+      }
+
+      // 4. 若點擊在灰色「分段鈕」本體或周圍 28px 安全區內，視為按分段（防止輔助觸控點在邊緣誤觸開始/停止）
+      if (e.target.closest("#sw-lap-reset-btn") || isPointNearLapButton(e.clientX, e.clientY)) {
+        e.preventDefault();
+        e.stopPropagation();
+        triggerLapResetSafe("分段鈕區域點擊");
+        return;
+      }
+
+      // 5. 若點在紅色「開始鈕」或畫面任何其他空白區域的左鍵 (Button 0) -> 開始/停止
+      if (e.button === 0) {
+        // 如果是在右側分段紀錄框內用手指上下滑動捲動，不觸發盲按；若是滑鼠點擊則直接觸發
+        e.preventDefault();
+        triggerStartStopSafe("全畫面盲按左鍵");
       }
     });
 
-    // 3) 攔截滑鼠右鍵選單 (contextmenu)：在盲按模式下直接作為「分段 / 歸零」
+    // D) 攔截滑鼠右鍵選單 (contextmenu)：直接作為「分段 / 歸零」，並封鎖後續假左鍵
     window.addEventListener("contextmenu", (e) => {
       if (!canTriggerRemoteControl()) return;
-      if (e.target.closest(".top-bar") || e.target.closest("#toggle-blind-mode-btn")) return;
+      if (e.target.closest(".top-bar")) return;
+      e.preventDefault();
+      e.stopPropagation();
+      triggerLapResetSafe("滑鼠右鍵選單");
+    }, true);
 
-      logSignal("滑鼠右鍵 (contextmenu) -> 分段/歸零");
-      if (mouseBlindMode) {
-        e.preventDefault();
-        if (isDebounced()) return;
-        flashButtonVisual(swLapResetBtn);
-        handleLapResetAction();
-      }
-    });
-
-    // 4) 滑鼠滾輪撥動監聽 (wheel)：在盲按模式下，撥一下滾輪直接觸發「分段 / 歸零」
+    // E) 滑鼠滾輪撥動監聽 (wheel)：常駐開啟，撥一下滾輪直接觸發「分段 / 歸零」
     let lastWheelRawMs = 0;
     window.addEventListener("wheel", (e) => {
-      if (!mouseBlindMode || !canTriggerRemoteControl()) return;
+      if (!canTriggerRemoteControl()) return;
       e.preventDefault();
 
       const now = performance.now();
@@ -1722,21 +1704,18 @@
       lastWheelRawMs = now;
 
       if (gap < 180) return;
-      if (isDebounced()) return;
-
-      logSignal("滑鼠滾輪撥動 -> 分段/歸零");
-      flashButtonVisual(swLapResetBtn);
-      handleLapResetAction();
+      triggerLapResetSafe("滑鼠滾輪撥動");
     }, { passive: false });
 
+    // 阻擋電腦瀏覽器側鍵預設上一頁/下一頁跳轉
     ["mouseup", "auxclick"].forEach((evtName) => {
       window.addEventListener(evtName, (e) => {
         if (!canTriggerRemoteControl()) return;
-        if (e.button === 3 || e.button === 4 || (mouseBlindMode && e.button === 2)) {
+        if (e.button === 2 || e.button === 3 || e.button === 4) {
           e.preventDefault();
           e.stopPropagation();
         }
-      });
+      }, true);
     });
 
     // 初次啟動載入
@@ -1760,7 +1739,7 @@
           await cache.addAll([window.location.href, "./", "./index.html"]).catch(() => {});
         }
 
-        logSignal("✅ 離線快取已就緒（可關閉網路離線使用）");
+        logSignal("✅ 離線快取與常駐盲按已就緒");
       } catch (err) {
         logSignal("⚠️ 離線未啟用：請確認 GitHub 已建立 sw.js 檔案");
       }
