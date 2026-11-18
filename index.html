@@ -16,7 +16,7 @@
     :root {
       --item-height: 34px;
       --visible-items: 7;
-      --wheel-height: calc(var(--item-height) * var(--visible-items)); /* 直向 238px */
+      --wheel-height: calc(var(--item-height) * var(--visible-items)); /* 預設直向 238px */
       --pad-height: calc(var(--item-height) * 3);
       --cyan: #32ade6;
       --cyan-dim: rgba(50, 173, 230, 0.85);
@@ -663,57 +663,45 @@
     }
 
     /* ==========================================
-       手機橫向模式 (Landscape) 全螢幕自適應排版
+       1. iPad / 平板直立模式 (Portrait) 寬度放大優化
        ========================================== */
-    @media (orientation: landscape) and (max-height: 600px) {
+    @media (orientation: portrait) and (min-width: 700px) {
       :root {
-        --visible-items: 5;
-        --wheel-height: calc(var(--item-height) * 5); /* 橫向縮減為 170px */
-        --pad-height: calc(var(--item-height) * 2);
+        --visible-items: 9;
+        --wheel-height: calc(var(--item-height) * 9); /* 306px */
+        --pad-height: calc(var(--item-height) * 4);
       }
 
       .app-container {
+        max-width: 680px;
+        padding: calc(env(safe-area-inset-top, 16px) + 12px) 28px calc(env(safe-area-inset-bottom, 16px) + 16px);
+        gap: 18px;
+      }
+
+      .sw-frozen-lap-time {
+        font-size: 84px;
+      }
+
+      .sw-circle-btn {
+        width: 96px;
+        height: 96px;
+      }
+    }
+
+    /* ==========================================
+       2. 所有裝置橫向模式 (Landscape 共用雙欄/三欄架構)
+          同時適用於 iPhone 橫放 與 iPad 橫放
+       ========================================== */
+    @media (orientation: landscape) {
+      .app-container {
         max-width: 100%;
-        padding: calc(env(safe-area-inset-top, 4px) + 4px)
-                 calc(env(safe-area-inset-right, 16px) + 12px)
-                 calc(env(safe-area-inset-bottom, 4px) + 6px)
-                 calc(env(safe-area-inset-left, 16px) + 12px);
-        gap: 6px;
-      }
-
-      .top-bar {
-        min-height: 30px;
-      }
-
-      .seg-btn {
-        padding: 4px 10px;
-        font-size: 13px;
       }
 
       /* 第一頁橫向：左邊四滾輪、右邊輪胎設定與計算結果 */
       #page-calc.active {
         display: grid;
         grid-template-columns: 1.15fr 1fr;
-        gap: 16px;
         align-items: center;
-      }
-
-      .calc-right-panel {
-        gap: 10px;
-      }
-
-      .spec-button {
-        padding: 10px 16px;
-      }
-
-      .spec-text {
-        font-size: 17px;
-      }
-
-      .results-card {
-        padding: 14px 16px;
-        gap: 10px;
-        font-size: 18px;
       }
 
       /* 第二頁橫向：左欄時間與凍結秒數、中欄紀錄盒、右欄垂直雙按鍵 */
@@ -725,7 +713,6 @@
           "header timers controls"
           "frozen laps   controls"
           "frozen laps   controls";
-        gap: 6px 12px;
         align-items: stretch;
       }
 
@@ -735,24 +722,8 @@
         padding: 0;
       }
 
-      .sw-gear-title {
-        font-size: 15.5px;
-      }
-
       .sw-timers-row {
         grid-area: timers;
-        padding: 4px 8px;
-        gap: 8px;
-      }
-
-      .sw-timer-label {
-        font-size: 12px;
-      }
-
-      .sw-elapsed-box,
-      .sw-lap-running-box {
-        font-size: 21px;
-        padding: 2px 8px;
       }
 
       .sw-main-split {
@@ -767,50 +738,11 @@
         background: #111113;
         border: 1px solid rgba(255, 255, 255, 0.14);
         border-radius: 10px;
-        padding: 6px 10px;
-        gap: 8px;
-      }
-
-      .sw-frozen-lap-time {
-        font-size: 50px;
-      }
-
-      .sw-frozen-lap-label {
-        font-size: 14px;
-        margin-top: 2px;
-      }
-
-      .sw-total-summary {
-        max-width: 195px;
-        padding: 6px 8px;
-        gap: 2px;
-      }
-
-      .sw-total-title {
-        font-size: 12px;
-      }
-
-      .sw-total-line {
-        font-size: 12px;
       }
 
       .sw-right-box {
         grid-area: laps;
         height: 100%;
-      }
-
-      .sw-lap-item {
-        padding: 6px 2px;
-      }
-
-      .sw-lap-dist {
-        font-size: 14px;
-        margin-bottom: 2px;
-      }
-
-      .sw-lap-detail {
-        font-size: 12.5px;
-        line-height: 1.35;
       }
 
       .sw-bottom-area {
@@ -821,27 +753,133 @@
       .sw-controls {
         flex-direction: column;
         justify-content: center;
-        gap: 12px;
-        padding: 0 2px;
-      }
-
-      .sw-circle-btn {
-        width: 70px;
-        height: 70px;
-      }
-
-      .sw-btn-main-text {
-        font-size: 17px;
-      }
-
-      .signal-debug-bar {
-        display: none;
       }
 
       .modal-sheet {
-        max-width: 600px;
-        padding: 10px 12px calc(env(safe-area-inset-bottom, 8px) + 8px);
+        max-width: 640px;
       }
+    }
+
+    /* ==========================================
+       2A. 手機橫向模式 (高度 <= 600px) 緊湊版尺寸
+       ========================================== */
+    @media (orientation: landscape) and (max-height: 600px) {
+      :root {
+        --visible-items: 5;
+        --wheel-height: calc(var(--item-height) * 5); /* 170px */
+        --pad-height: calc(var(--item-height) * 2);
+      }
+
+      .app-container {
+        padding: calc(env(safe-area-inset-top, 4px) + 4px)
+                 calc(env(safe-area-inset-right, 16px) + 12px)
+                 calc(env(safe-area-inset-bottom, 4px) + 6px)
+                 calc(env(safe-area-inset-left, 16px) + 12px);
+        gap: 6px;
+      }
+
+      .top-bar { min-height: 30px; }
+      .seg-btn { padding: 4px 10px; font-size: 13px; }
+
+      #page-calc.active { gap: 16px; }
+      .calc-right-panel { gap: 10px; }
+      .spec-button { padding: 10px 16px; }
+      .spec-text { font-size: 17px; }
+      .results-card { padding: 14px 16px; gap: 10px; font-size: 18px; }
+
+      #page-stopwatch.active { gap: 6px 12px; }
+      .sw-gear-title { font-size: 15.5px; }
+      .sw-timers-row { padding: 4px 8px; gap: 8px; }
+      .sw-timer-label { font-size: 12px; }
+      .sw-elapsed-box, .sw-lap-running-box { font-size: 21px; padding: 2px 8px; }
+
+      .sw-left-col { padding: 6px 10px; gap: 8px; }
+      .sw-frozen-lap-time { font-size: 50px; }
+      .sw-frozen-lap-label { font-size: 14px; margin-top: 2px; }
+      .sw-total-summary { max-width: 195px; padding: 6px 8px; gap: 2px; }
+      .sw-total-title, .sw-total-line { font-size: 12px; }
+
+      .sw-lap-item { padding: 6px 2px; }
+      .sw-lap-dist { font-size: 14px; margin-bottom: 2px; }
+      .sw-lap-detail { font-size: 12.5px; line-height: 1.35; }
+
+      .sw-controls { gap: 12px; padding: 0 2px; }
+      .sw-circle-btn { width: 70px; height: 70px; }
+      .sw-btn-main-text { font-size: 17px; }
+      .signal-debug-bar { display: none; }
+      .modal-sheet { padding: 10px 12px calc(env(safe-area-inset-bottom, 8px) + 8px); }
+    }
+
+    /* ==========================================
+       2B. iPad / 平板橫向模式 (高度 >= 601px) 全螢幕放大版
+       ========================================== */
+    @media (orientation: landscape) and (min-height: 601px) {
+      :root {
+        --visible-items: 9;
+        --wheel-height: calc(var(--item-height) * 9); /* 306px */
+        --pad-height: calc(var(--item-height) * 4);
+      }
+
+      .app-container {
+        padding: calc(env(safe-area-inset-top, 12px) + 10px)
+                 calc(env(safe-area-inset-right, 20px) + 24px)
+                 calc(env(safe-area-inset-bottom, 12px) + 14px)
+                 calc(env(safe-area-inset-left, 20px) + 24px);
+        gap: 16px;
+      }
+
+      .top-bar { min-height: 42px; }
+      .seg-control { max-width: 380px; }
+      .seg-btn { font-size: 16px; padding: 8px 14px; }
+      .sw-settings-btn { font-size: 16px; padding: 7px 14px; }
+
+      /* 第一頁 iPad 橫向放大 */
+      #page-calc.active { gap: 32px; }
+      .wheel-headers { font-size: 18px; margin-bottom: 4px; }
+      .calc-right-panel { gap: 20px; }
+      .spec-button { padding: 18px 24px; border-width: 2.5px; }
+      .spec-text { font-size: 24px; }
+      .spec-chevron { font-size: 26px; }
+      .results-card { padding: 26px 24px; gap: 20px; font-size: 26px; border-width: 2.5px; }
+
+      /* 第二頁 iPad 橫向放大 */
+      #page-stopwatch.active { gap: 14px 20px; }
+      .sw-gear-title { font-size: 23px; }
+      .sw-gear-sub { font-size: 16px; }
+      .blind-mode-btn { font-size: 14px; padding: 7px 14px; }
+
+      .sw-timers-row { padding: 12px 16px; gap: 16px; }
+      .sw-timer-label { font-size: 16px; }
+      .sw-elapsed-box, .sw-lap-running-box {
+        font-size: 36px;
+        max-width: 220px;
+        padding: 6px 20px;
+      }
+
+      .sw-left-col { padding: 16px; gap: 16px; }
+      .sw-frozen-lap-time { font-size: 92px; }
+      .sw-frozen-lap-label { font-size: 20px; margin-top: 8px; }
+
+      .sw-total-summary {
+        max-width: 260px;
+        padding: 14px 16px;
+        gap: 6px;
+      }
+      .sw-total-title { font-size: 16px; }
+      .sw-total-line { font-size: 16px; }
+
+      .sw-right-box { padding: 8px 16px; }
+      .sw-lap-item { padding: 12px 4px; }
+      .sw-lap-dist { font-size: 18px; margin-bottom: 6px; }
+      .sw-lap-detail { font-size: 16px; line-height: 1.48; }
+      .sw-empty-hint { font-size: 15px; }
+
+      .sw-bottom-area { gap: 14px; }
+      .sw-controls { gap: 24px; padding: 0 6px; }
+      .sw-circle-btn { width: 102px; height: 102px; }
+      .sw-btn-main-text { font-size: 24px; }
+      .sw-btn-key-hint { font-size: 12px; }
+      .signal-debug-bar { font-size: 13px; padding: 6px 12px; max-width: 140px; line-height: 1.35; }
     }
   </style>
 </head>
@@ -1717,7 +1755,6 @@
         await navigator.serviceWorker.register("./sw.js", { scope: "./" });
         await navigator.serviceWorker.ready;
 
-        // 前端雙重保險：主動將當前完整網址與 index.html 寫入快取區
         if ("caches" in window) {
           const cache = await caches.open("ratios-sw-cache-v2");
           await cache.addAll([window.location.href, "./", "./index.html"]).catch(() => {});
