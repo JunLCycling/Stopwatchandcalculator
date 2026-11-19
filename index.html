@@ -1553,27 +1553,47 @@
     }
 
     // ==========================================
-    // 7. 常駐盲按與跨事件防衝突控制（徹底杜絕按分段時誤觸開始/停止）
+    // 7. 常駐盲按與 60ms 取消緩衝互斥鎖（徹底杜絕按分段時誤觸開始/停止）
     // ==========================================
-    let lastAnyActionMs = 0; // 記錄任何動作的最後觸發時間
-    let lastLapActionMs = 0; // 專記「分段/歸零」最後觸發時間，用來封鎖隨後的假左鍵訊號
+    let lastAnyActionMs = 0;
+    let pendingStartStopTimer = null;
 
-    // 執行【開始 / 停止】的唯一安全入口
-    function triggerStartStopSafe(sourceLabel) {
-      const now = performance.now();
-      // 若剛剛才觸發過分段 (350ms 內)，或剛剛才觸發過任何動作 (180ms 內)，一律忽略，防止側鍵或輔助觸控連帶誤觸
-      if (now - lastLapActionMs < 350 || now - lastAnyActionMs < 180) return;
-      lastAnyActionMs = now;
-      logSignal(`${sourceLabel} -> 開始/停止`);
-      flashButtonVisual(swStartStopBtn);
-      handleStartStopAction();
+    function cancelPendingStartStop() {
+      if (pendingStartStopTimer !== null) {
+        clearTimeout(pendingStartStopTimer);
+        pendingStartStopTimer = null;
+      }
     }
 
-    // 執行【分段 / 歸零】的唯一安全入口
-    function triggerLapResetSafe(sourceLabel) {
+    // 執行【開始 / 停止】：支援 delayMs 緩衝，若期間收到分段訊號則自動取消
+    function triggerStartStopSafe(sourceLabel, delayMs = 0) {
       const now = performance.now();
-      if (now - lastLapActionMs < 150) return;
-      lastLapActionMs = now;
+      if (now - lastAnyActionMs < 400) return;
+
+      cancelPendingStartStop();
+
+      const execute = () => {
+        pendingStartStopTimer = null;
+        const execNow = performance.now();
+        if (execNow - lastAnyActionMs < 400) return;
+        lastAnyActionMs = execNow;
+        logSignal(`${sourceLabel} -> 開始/停止`);
+        flashButtonVisual(swStartStopBtn);
+        handleStartStopAction();
+      };
+
+      if (delayMs > 0) {
+        pendingStartStopTimer = setTimeout(execute, delayMs);
+      } else {
+        execute();
+      }
+    }
+
+    // 執行【分段 / 歸零】：最高優先權，立即取消任何待命中的開始/停止，並鎖定 400ms
+    function triggerLapResetSafe(sourceLabel) {
+      cancelPendingStartStop();
+      const now = performance.now();
+      if (now - lastAnyActionMs < 350) return;
       lastAnyActionMs = now;
       logSignal(`${sourceLabel} -> 分段/歸零`);
       flashButtonVisual(swLapResetBtn);
@@ -1591,10 +1611,9 @@
       return isStopwatchActive && isModalClosed;
     }
 
-    // 判斷點擊座標是否落在灰色「分段」按鈕周圍 28px 安全區內（保護 iPad 輔助觸控自訂手勢稍微點偏的情況）
     function isPointNearLapButton(clientX, clientY) {
       const rect = swLapResetBtn.getBoundingClientRect();
-      const pad = 28;
+      const pad = 32;
       return (
         clientX >= rect.left - pad &&
         clientX <= rect.right + pad &&
@@ -1603,7 +1622,7 @@
       );
     }
 
-    // A) 灰色「分段/歸零」與紅色「開始/停止」圓形按鈕本體：直接由 pointerdown 最優先攔截並阻斷冒泡
+    // A) 灰色「分段/歸零」與紅色「開始/停止」圓形按鈕本體
     swLapResetBtn.addEventListener("pointerdown", (e) => {
       if (e.button !== 0 && e.button !== undefined) return;
       e.preventDefault();
@@ -1617,7 +1636,7 @@
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
-      triggerStartStopSafe("點擊畫面【開始/停止】鈕");
+      triggerStartStopSafe("點擊畫面【開始/停止】鈕", 0);
     });
 
     // B) 鍵盤按鍵監聽 (S = 開始/停止, D = 分段/歸零)
@@ -1632,7 +1651,7 @@
       } else if (e.code === "KeyS" || keyLower === "s") {
         e.preventDefault();
         e.stopPropagation();
-        triggerStartStopSafe(`鍵盤 [${e.key}]`);
+        triggerStartStopSafe(`鍵盤 [${e.key}]`, 0);
       }
     }, true);
 
@@ -1640,7 +1659,7 @@
     window.addEventListener("pointerdown", (e) => {
       if (!canTriggerRemoteControl()) return;
 
-      // 1. 優先檢查是否為滑鼠分段按鍵：側鍵 5 (button 4)、右鍵 (button 2)、中鍵 (button 1) 或帶右鍵/側鍵遮罩 (buttons 2/4/16)
+      // 1. 滑鼠分段按鍵：側鍵 5 (button 4)、右鍵 (button 2)、中鍵 (button 1)
       if (
         e.button === 4 ||
         e.button === 2 ||
@@ -1659,16 +1678,16 @@
       if (e.button === 3 || (e.buttons & 8) === 8) {
         e.preventDefault();
         e.stopPropagation();
-        triggerStartStopSafe("滑鼠側鍵 4");
+        triggerStartStopSafe("滑鼠側鍵 4", 0);
         return;
       }
 
-      // 3. 忽略頂部切換導覽列與滾輪設定區
+      // 3. 忽略頂部切換導覽列與設定彈窗
       if (e.target.closest(".top-bar") || e.target.closest(".modal-backdrop")) {
         return;
       }
 
-      // 4. 若點擊在灰色「分段鈕」本體或周圍 28px 安全區內，視為按分段（防止輔助觸控點在邊緣誤觸開始/停止）
+      // 4. 若點擊落在灰色「分段鈕」或周圍 32px 安全區內 -> 分段/歸零
       if (e.target.closest("#sw-lap-reset-btn") || isPointNearLapButton(e.clientX, e.clientY)) {
         e.preventDefault();
         e.stopPropagation();
@@ -1676,15 +1695,14 @@
         return;
       }
 
-      // 5. 若點在紅色「開始鈕」或畫面任何其他空白區域的左鍵 (Button 0) -> 開始/停止
+      // 5. 全畫面空白區域左鍵 (Button 0) -> 開始/停止（使用 60ms 緩衝，若側鍵伴隨分段訊號則自動取消）
       if (e.button === 0) {
-        // 如果是在右側分段紀錄框內用手指上下滑動捲動，不觸發盲按；若是滑鼠點擊則直接觸發
         e.preventDefault();
-        triggerStartStopSafe("全畫面盲按左鍵");
+        triggerStartStopSafe("全畫面盲按左鍵", 60);
       }
     });
 
-    // D) 攔截滑鼠右鍵選單 (contextmenu)：直接作為「分段 / 歸零」，並封鎖後續假左鍵
+    // D) 攔截滑鼠右鍵選單 (contextmenu)：直接作為「分段 / 歸零」
     window.addEventListener("contextmenu", (e) => {
       if (!canTriggerRemoteControl()) return;
       if (e.target.closest(".top-bar")) return;
