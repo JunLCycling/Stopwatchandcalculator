@@ -16,7 +16,7 @@
     :root {
       --item-height: 34px;
       --visible-items: 7;
-      --wheel-height: calc(var(--item-height) * var(--visible-items)); /* 預設直向 238px */
+      --wheel-height: calc(var(--item-height) * var(--visible-items));
       --pad-height: calc(var(--item-height) * 3);
       --cyan: #32ade6;
       --cyan-dim: rgba(50, 173, 230, 0.85);
@@ -54,9 +54,7 @@
       gap: 10px;
     }
 
-    /* ==========================================
-       頂部導覽列（頁面切換 + 右上角碼錶設定鈕）
-       ========================================== */
+    /* 頂部導覽列 */
     .top-bar {
       display: grid;
       grid-template-columns: 64px 1fr 64px;
@@ -113,7 +111,6 @@
       display: inline-block;
     }
 
-    /* 頁面視圖切換 */
     .page-view {
       display: none;
       flex-direction: column;
@@ -125,9 +122,7 @@
       display: flex;
     }
 
-    /* ==========================================
-       第一頁：齒比計算器樣式
-       ========================================== */
+    /* 第一頁：齒比計算器 */
     #page-calc {
       gap: 14px;
     }
@@ -167,7 +162,6 @@
       grid-template-columns: repeat(4, 1fr);
     }
 
-    /* 上下漸層覆蓋層 */
     .wheels-wrapper::before,
     .single-wheel-wrapper::before,
     .quad-wheels-wrapper::before {
@@ -305,9 +299,7 @@
     .value-cyan { color: var(--cyan); font-variant-numeric: tabular-nums; }
     .row-green  { color: var(--green); font-variant-numeric: tabular-nums; }
 
-    /* ==========================================
-       第二頁：迴轉碼錶樣式
-       ========================================== */
+    /* 第二頁：迴轉碼錶 */
     #page-stopwatch {
       gap: 8px;
       justify-content: space-between;
@@ -495,13 +487,6 @@
       line-height: 1.55;
     }
 
-    .sw-bottom-area {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-    }
-
     .sw-controls {
       display: flex;
       justify-content: center;
@@ -549,21 +534,23 @@
     .btn-red { background-color: var(--red); }
     .btn-grey { background-color: var(--grey-btn); }
 
-    /* 即時訊號與離線快取狀態列 */
+    /* 全寬即時訊號與版本診斷列 */
     .signal-debug-bar {
       font-size: 11.5px;
       font-weight: 600;
-      color: #8e8e93;
+      color: #aeaeb2;
       text-align: center;
       background: #141416;
+      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 6px;
-      padding: 3px 10px;
+      padding: 4px 10px;
       width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    /* ==========================================
-       彈出式選單共用樣式 (Sheet Modal)
-       ========================================== */
+    /* 彈出式選單共用樣式 */
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -641,13 +628,11 @@
       grid-template-columns: 0.9fr 0.8fr 0.8fr 1.3fr;
     }
 
-    /* ==========================================
-       1. iPad / 平板直立模式 (Portrait) 寬度放大優化
-       ========================================== */
+    /* 1. iPad / 平板直立模式 */
     @media (orientation: portrait) and (min-width: 700px) {
       :root {
         --visible-items: 9;
-        --wheel-height: calc(var(--item-height) * 9); /* 306px */
+        --wheel-height: calc(var(--item-height) * 9);
         --pad-height: calc(var(--item-height) * 4);
       }
 
@@ -657,41 +642,28 @@
         gap: 18px;
       }
 
-      .sw-frozen-lap-time {
-        font-size: 84px;
-      }
-
-      .sw-circle-btn {
-        width: 96px;
-        height: 96px;
-      }
+      .sw-frozen-lap-time { font-size: 84px; }
+      .sw-circle-btn { width: 96px; height: 96px; }
     }
 
-    /* ==========================================
-       2. 所有裝置橫向模式 (Landscape 共用雙欄/三欄架構)
-          同時適用於 iPhone 橫放 與 iPad 橫放
-       ========================================== */
+    /* 2. 所有裝置橫向模式共用雙欄/三欄架構 */
     @media (orientation: landscape) {
-      .app-container {
-        max-width: 100%;
-      }
+      .app-container { max-width: 100%; }
 
-      /* 第一頁橫向：左邊四滾輪、右邊輪胎設定與計算結果 */
       #page-calc.active {
         display: grid;
         grid-template-columns: 1.15fr 1fr;
         align-items: center;
       }
 
-      /* 第二頁橫向：左欄時間與凍結秒數、中欄紀錄盒、右欄垂直雙按鍵 */
       #page-stopwatch.active {
         display: grid;
         grid-template-columns: 1.25fr 1.1fr auto;
-        grid-template-rows: auto auto 1fr;
+        grid-template-rows: auto 1fr auto;
         grid-template-areas:
           "header timers controls"
           "frozen laps   controls"
-          "frozen laps   controls";
+          "debug  debug  debug";
         align-items: stretch;
       }
 
@@ -702,13 +674,8 @@
         padding: 0;
       }
 
-      .sw-timers-row {
-        grid-area: timers;
-      }
-
-      .sw-main-split {
-        display: contents;
-      }
+      .sw-timers-row { grid-area: timers; }
+      .sw-main-split { display: contents; }
 
       .sw-left-col {
         grid-area: frozen;
@@ -725,28 +692,24 @@
         height: 100%;
       }
 
-      .sw-bottom-area {
-        grid-area: controls;
-        justify-content: center;
-      }
-
       .sw-controls {
+        grid-area: controls;
         flex-direction: column;
         justify-content: center;
       }
 
-      .modal-sheet {
-        max-width: 640px;
+      .signal-debug-bar {
+        grid-area: debug;
       }
+
+      .modal-sheet { max-width: 640px; }
     }
 
-    /* ==========================================
-       2A. 手機橫向模式 (高度 <= 600px) 緊湊版尺寸
-       ========================================== */
+    /* 2A. 手機橫向模式 (高度 <= 600px) */
     @media (orientation: landscape) and (max-height: 600px) {
       :root {
         --visible-items: 5;
-        --wheel-height: calc(var(--item-height) * 5); /* 170px */
+        --wheel-height: calc(var(--item-height) * 5);
         --pad-height: calc(var(--item-height) * 2);
       }
 
@@ -767,7 +730,13 @@
       .spec-text { font-size: 17px; }
       .results-card { padding: 14px 16px; gap: 10px; font-size: 18px; }
 
-      #page-stopwatch.active { gap: 6px 12px; }
+      #page-stopwatch.active {
+        grid-template-rows: auto 1fr;
+        grid-template-areas:
+          "header timers controls"
+          "frozen laps   controls";
+        gap: 6px 12px;
+      }
       .sw-gear-title { font-size: 16px; }
       .sw-timers-row { padding: 4px 8px; gap: 8px; }
       .sw-timer-label { font-size: 12px; }
@@ -790,22 +759,20 @@
       .modal-sheet { padding: 10px 12px calc(env(safe-area-inset-bottom, 8px) + 8px); }
     }
 
-    /* ==========================================
-       2B. iPad / 平板橫向模式 (高度 >= 601px) 全螢幕放大版
-       ========================================== */
+    /* 2B. iPad / 平板橫向模式 (高度 >= 601px) */
     @media (orientation: landscape) and (min-height: 601px) {
       :root {
         --visible-items: 9;
-        --wheel-height: calc(var(--item-height) * 9); /* 306px */
+        --wheel-height: calc(var(--item-height) * 9);
         --pad-height: calc(var(--item-height) * 4);
       }
 
       .app-container {
         padding: calc(env(safe-area-inset-top, 12px) + 10px)
                  calc(env(safe-area-inset-right, 20px) + 24px)
-                 calc(env(safe-area-inset-bottom, 12px) + 14px)
+                 calc(env(safe-area-inset-bottom, 12px) + 12px)
                  calc(env(safe-area-inset-left, 20px) + 24px);
-        gap: 16px;
+        gap: 14px;
       }
 
       .top-bar { min-height: 42px; }
@@ -813,7 +780,6 @@
       .seg-btn { font-size: 16px; padding: 8px 14px; }
       .sw-settings-btn { font-size: 16px; padding: 7px 14px; }
 
-      /* 第一頁 iPad 橫向放大 */
       #page-calc.active { gap: 32px; }
       .wheel-headers { font-size: 18px; margin-bottom: 4px; }
       .calc-right-panel { gap: 20px; }
@@ -822,8 +788,7 @@
       .spec-chevron { font-size: 26px; }
       .results-card { padding: 26px 24px; gap: 20px; font-size: 26px; border-width: 2.5px; }
 
-      /* 第二頁 iPad 橫向放大 */
-      #page-stopwatch.active { gap: 14px 20px; }
+      #page-stopwatch.active { gap: 12px 20px; }
       .sw-gear-title { font-size: 24px; }
       .sw-gear-sub { font-size: 17px; }
 
@@ -844,8 +809,7 @@
         padding: 14px 16px;
         gap: 6px;
       }
-      .sw-total-title { font-size: 16px; }
-      .sw-total-line { font-size: 16px; }
+      .sw-total-title, .sw-total-line { font-size: 16px; }
 
       .sw-right-box { padding: 8px 16px; }
       .sw-lap-item { padding: 12px 4px; }
@@ -853,12 +817,16 @@
       .sw-lap-detail { font-size: 16px; line-height: 1.48; }
       .sw-empty-hint { font-size: 15px; }
 
-      .sw-bottom-area { gap: 14px; }
-      .sw-controls { gap: 24px; padding: 0 6px; }
+      .sw-controls { gap: 26px; padding: 0 6px; }
       .sw-circle-btn { width: 102px; height: 102px; }
       .sw-btn-main-text { font-size: 24px; }
       .sw-btn-key-hint { font-size: 12px; }
-      .signal-debug-bar { font-size: 13px; padding: 6px 12px; max-width: 140px; line-height: 1.35; }
+
+      .signal-debug-bar {
+        font-size: 13.5px;
+        padding: 6px 14px;
+        max-width: 100%;
+      }
     }
   </style>
 </head>
@@ -874,9 +842,7 @@
       <button id="open-sw-settings-btn" class="sw-settings-btn" type="button">設定</button>
     </div>
 
-    <!-- ==========================================
-         頁面 1：RATIOS 齒比計算器
-         ========================================== -->
+    <!-- 頁面 1：RATIOS 齒比計算器 -->
     <div id="page-calc" class="page-view active">
       <div class="wheels-section">
         <div class="wheel-headers">
@@ -918,17 +884,13 @@
       </div>
     </div>
 
-    <!-- ==========================================
-         頁面 2：迴轉碼錶 (全畫面盲按常駐開啟)
-         ========================================== -->
+    <!-- 頁面 2：迴轉碼錶 (常駐盲按 v3) -->
     <div id="page-stopwatch" class="page-view">
-      <!-- 1. 上方：所選的前齒、後齒、輪胎規格與單圈距離 -->
       <div class="sw-gear-header">
         <span id="sw-gear-display" class="sw-gear-title">50t x 13t · 700 X 20</span>
         <span id="sw-dist-badge" class="sw-gear-sub">(250m)</span>
       </div>
 
-      <!-- 2. 累計時間 與 分段時間 並排顯示 -->
       <div class="sw-timers-row">
         <div class="sw-timer-block">
           <div class="sw-timer-label">累計時間</div>
@@ -940,7 +902,6 @@
         </div>
       </div>
 
-      <!-- 3. 中間左右分割：左邊凍結上個分段秒數(個位數+小數第一位)＋全程總計 ／ 右邊分段紀錄盒 -->
       <div class="sw-main-split">
         <div class="sw-left-col">
           <div class="sw-frozen-lap-wrap">
@@ -948,7 +909,6 @@
             <div id="sw-frozen-lap-num" class="sw-frozen-lap-label">上圈秒數</div>
           </div>
 
-          <!-- 按下停止時顯示的全程總計 (模式 A) -->
           <div id="sw-total-card" class="sw-total-summary">
             <div id="sw-total-title" class="sw-total-title">🏁 全程總計</div>
             <div class="sw-total-line">
@@ -971,24 +931,22 @@
         </div>
       </div>
 
-      <!-- 4. 控制鍵與即時訊號偵測列 -->
-      <div class="sw-bottom-area">
-        <div class="sw-controls">
-          <button id="sw-start-stop-btn" class="sw-circle-btn btn-red" type="button">
-            <span id="sw-start-stop-text" class="sw-btn-main-text">開始</span>
-            <span id="sw-start-stop-hint" class="sw-btn-key-hint">[左鍵 / S]</span>
-          </button>
-          <button id="sw-lap-reset-btn" class="sw-circle-btn btn-grey" type="button">
-            <span id="sw-lap-reset-text" class="sw-btn-main-text">分段</span>
-            <span id="sw-lap-reset-hint" class="sw-btn-key-hint">[滾輪 / D]</span>
-          </button>
-        </div>
-        <div id="signal-debug-bar" class="signal-debug-bar">📡 狀態：正在檢查離線快取...</div>
+      <div class="sw-controls">
+        <button id="sw-start-stop-btn" class="sw-circle-btn btn-red" type="button">
+          <span id="sw-start-stop-text" class="sw-btn-main-text">開始</span>
+          <span class="sw-btn-key-hint">[左鍵 / S]</span>
+        </button>
+        <button id="sw-lap-reset-btn" class="sw-circle-btn btn-grey" type="button">
+          <span id="sw-lap-reset-text" class="sw-btn-main-text">分段</span>
+          <span class="sw-btn-key-hint">[滾輪 / D]</span>
+        </button>
       </div>
+
+      <div id="signal-debug-bar" class="signal-debug-bar">v3 | 📡 狀態：正在檢查離線快取...</div>
     </div>
   </div>
 
-  <!-- 彈出選單 1：第一頁的輪胎規格設定 -->
+  <!-- 彈出選單 1：輪胎規格設定 -->
   <div id="tire-modal" class="modal-backdrop">
     <div class="modal-sheet">
       <div class="modal-header">
@@ -1002,7 +960,7 @@
     </div>
   </div>
 
-  <!-- 彈出選單 2：第二頁右上角的碼錶設定（分圈距離、前齒、後齒、輪胎規格） -->
+  <!-- 彈出選單 2：碼錶設定 -->
   <div id="sw-settings-modal" class="modal-backdrop">
     <div class="modal-sheet">
       <div class="modal-header">
@@ -1029,13 +987,14 @@
     // ==========================================
     // 1. 共同資料清單設定
     // ==========================================
+    const APP_VERSION = "v3";
     const ITEM_HEIGHT = 34;
 
-    const chainringList = Array.from({ length: 75 - 45 + 1 }, (_, i) => 45 + i); // 45 ~ 75
-    const sprocketList  = Array.from({ length: 20 - 10 + 1 }, (_, i) => 10 + i); // 10 ~ 20
-    const rpmList       = Array.from({ length: 160 - 40 + 1 }, (_, i) => 40 + i); // 40 ~ 160
+    const chainringList = Array.from({ length: 75 - 45 + 1 }, (_, i) => 45 + i);
+    const sprocketList  = Array.from({ length: 20 - 10 + 1 }, (_, i) => 10 + i);
+    const rpmList       = Array.from({ length: 160 - 40 + 1 }, (_, i) => 40 + i);
     const distanceList  = [0.2, 0.25, 0.333, 0.5, 0.666, 1, 1.5, 2, 3, 4, 5, 7.5, 10, 15, 16, 20, 25, 30, 50];
-    const swLapDistList = [50, 100, 125, 166, 250, 333]; // 碼錶分圈距離設定顯示值 (m)
+    const swLapDistList = [50, 100, 125, 166, 250, 333];
 
     const tireSpecs = [
       { name: "700 X 18", diameterMM: 658.0 },
@@ -1061,7 +1020,6 @@
       return defaultVal;
     }
 
-    // 第一頁狀態
     let selectedChainring = loadSavedValue("selectedChainring", chainringList, 61);
     let selectedSprocket  = loadSavedValue("selectedSprocket", sprocketList, 14);
     let selectedRPM       = loadSavedValue("selectedRPM", rpmList, 90);
@@ -1069,16 +1027,13 @@
     let selectedTireIndex = Number(localStorage.getItem("selectedTireIndex") ?? 1);
     if (selectedTireIndex < 0 || selectedTireIndex >= tireSpecs.length) selectedTireIndex = 1;
 
-    // 第二頁（迴轉碼錶）設定狀態
     let swLapDist   = loadSavedValue("swLapDist", swLapDistList, 250);
     let swChainring = loadSavedValue("swChainring", chainringList, 50);
     let swSprocket  = loadSavedValue("swSprocket", sprocketList, 13);
     let swTireIndex = Number(localStorage.getItem("swTireIndex") ?? selectedTireIndex);
     if (swTireIndex < 0 || swTireIndex >= tireSpecs.length) swTireIndex = 1;
 
-    // 紀錄所有滾輪實例，供螢幕旋轉時重新對齊定位
     const wheelRegistry = [];
-
     function syncAllWheelsScroll() {
       requestAnimationFrame(() => {
         wheelRegistry.forEach(w => {
@@ -1086,12 +1041,11 @@
         });
       });
     }
-
     window.addEventListener("resize", syncAllWheelsScroll);
     window.addEventListener("orientationchange", () => setTimeout(syncAllWheelsScroll, 120));
 
     // ==========================================
-    // 2. 頁面頂部切換控制
+    // 2. 頁面切換
     // ==========================================
     const tabCalcBtn = document.getElementById("tab-calc");
     const tabSwBtn   = document.getElementById("tab-sw");
@@ -1117,7 +1071,7 @@
     });
 
     // ==========================================
-    // 3. 第一頁：齒比計算器邏輯
+    // 3. 第一頁：齒比計算器
     // ==========================================
     function formatDistance(km) {
       return Number.isInteger(km) ? km.toFixed(0) : String(km);
@@ -1136,13 +1090,9 @@
         const roundedTotal = Math.round(totalSeconds * 100) / 100;
         const minutes = Math.floor(roundedTotal / 60);
         const seconds = roundedTotal - minutes * 60;
-
-        if (minutes > 0) {
-          const secStr = seconds.toFixed(2).padStart(5, "0");
-          ridingTimeFormatted = `${minutes}分 ${secStr}秒`;
-        } else {
-          ridingTimeFormatted = `${roundedTotal.toFixed(2)}秒`;
-        }
+        ridingTimeFormatted = minutes > 0
+          ? `${minutes}分 ${seconds.toFixed(2).padStart(5, "0")}秒`
+          : `${roundedTotal.toFixed(2)}秒`;
       }
 
       document.getElementById("tire-label").textContent = `輪胎規格: ${tireSpecs[selectedTireIndex].name}`;
@@ -1153,7 +1103,7 @@
     }
 
     // ==========================================
-    // 4. 通用滾輪元件生成函式
+    // 4. 通用滾輪元件
     // ==========================================
     function setupWheel(containerId, items, initialIndex, formatFn, onSelect) {
       const container = document.getElementById(containerId);
@@ -1179,10 +1129,7 @@
       container.appendChild(bottomSpacer);
 
       let activeIdx = Math.max(0, initialIndex);
-
-      requestAnimationFrame(() => {
-        container.scrollTop = activeIdx * ITEM_HEIGHT;
-      });
+      requestAnimationFrame(() => { container.scrollTop = activeIdx * ITEM_HEIGHT; });
 
       container.addEventListener("scroll", () => {
         const rawIdx = Math.round(container.scrollTop / ITEM_HEIGHT);
@@ -1195,44 +1142,25 @@
         }
       }, { passive: true });
 
-      wheelRegistry.push({
-        container,
-        getActiveIdx: () => activeIdx
-      });
+      wheelRegistry.push({ container, getActiveIdx: () => activeIdx });
     }
 
-    // 初始化第一頁滾輪
     setupWheel("wheel-chainring", chainringList, chainringList.indexOf(selectedChainring), v => v, (val) => {
-      selectedChainring = val;
-      localStorage.setItem("selectedChainring", val);
-      updateCalculations();
+      selectedChainring = val; localStorage.setItem("selectedChainring", val); updateCalculations();
     });
-
     setupWheel("wheel-sprocket", sprocketList, sprocketList.indexOf(selectedSprocket), v => v, (val) => {
-      selectedSprocket = val;
-      localStorage.setItem("selectedSprocket", val);
-      updateCalculations();
+      selectedSprocket = val; localStorage.setItem("selectedSprocket", val); updateCalculations();
     });
-
     setupWheel("wheel-rpm", rpmList, rpmList.indexOf(selectedRPM), v => v, (val) => {
-      selectedRPM = val;
-      localStorage.setItem("selectedRPM", val);
-      updateCalculations();
+      selectedRPM = val; localStorage.setItem("selectedRPM", val); updateCalculations();
     });
-
     setupWheel("wheel-distance", distanceList, distanceList.indexOf(selectedDistance), v => formatDistance(v), (val) => {
-      selectedDistance = val;
-      localStorage.setItem("selectedDistance", val);
-      updateCalculations();
+      selectedDistance = val; localStorage.setItem("selectedDistance", val); updateCalculations();
     });
-
     setupWheel("wheel-tire", tireSpecs, selectedTireIndex, item => item.name, (_, idx) => {
-      selectedTireIndex = idx;
-      localStorage.setItem("selectedTireIndex", idx);
-      updateCalculations();
+      selectedTireIndex = idx; localStorage.setItem("selectedTireIndex", idx); updateCalculations();
     });
 
-    // 第一頁輪胎選單開關
     const tireModal = document.getElementById("tire-modal");
     const wheelTireEl = document.getElementById("wheel-tire");
     document.getElementById("open-tire-btn").addEventListener("click", () => {
@@ -1243,10 +1171,9 @@
     tireModal.addEventListener("click", (e) => { if (e.target === tireModal) tireModal.classList.remove("open"); });
 
     // ==========================================
-    // 5. 盲按提示音效 & 螢幕恆亮控制 (Wake Lock)
+    // 5. 音效 & 螢幕恆亮 (Wake Lock)
     // ==========================================
     let audioCtx = null;
-
     function playBeep(type) {
       try {
         if (!audioCtx) {
@@ -1270,49 +1197,33 @@
           osc.stop(now + startOffset + duration);
         };
 
-        if (type === "start") {
-          makeTone(980, 0, 0.11);
-        } else if (type === "lap") {
-          makeTone(1200, 0, 0.08);
-        } else if (type === "stop") {
-          makeTone(880, 0, 0.09);
-          makeTone(660, 0.12, 0.15);
-        } else if (type === "reset") {
-          makeTone(440, 0, 0.1);
-        }
+        if (type === "start") makeTone(980, 0, 0.11);
+        else if (type === "lap") makeTone(1200, 0, 0.08);
+        else if (type === "stop") { makeTone(880, 0, 0.09); makeTone(660, 0.12, 0.15); }
+        else if (type === "reset") makeTone(440, 0, 0.1);
       } catch (_) {}
     }
 
     let wakeLockSentinel = null;
-
     async function requestWakeLock() {
       try {
         if ("wakeLock" in navigator && !wakeLockSentinel) {
           wakeLockSentinel = await navigator.wakeLock.request("screen");
-          wakeLockSentinel.addEventListener("release", () => {
-            wakeLockSentinel = null;
-          });
+          wakeLockSentinel.addEventListener("release", () => { wakeLockSentinel = null; });
         }
       } catch (_) {}
     }
-
     async function releaseWakeLock() {
       try {
-        if (wakeLockSentinel) {
-          await wakeLockSentinel.release();
-          wakeLockSentinel = null;
-        }
+        if (wakeLockSentinel) { await wakeLockSentinel.release(); wakeLockSentinel = null; }
       } catch (_) {}
     }
-
     document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible" && swState === "RUNNING") {
-        requestWakeLock();
-      }
+      if (document.visibilityState === "visible" && swState === "RUNNING") requestWakeLock();
     });
 
     // ==========================================
-    // 6. 第二頁：迴轉碼錶邏輯與設定選單
+    // 6. 第二頁：迴轉碼錶邏輯
     // ==========================================
     const swGearDisplay       = document.getElementById("sw-gear-display");
     const swDistBadge         = document.getElementById("sw-dist-badge");
@@ -1333,43 +1244,42 @@
     const swLapResetText      = document.getElementById("sw-lap-reset-text");
     const signalDebugBar      = document.getElementById("signal-debug-bar");
 
+    // 保留最近兩筆原始訊號，方便一眼看出側鍵實際送出的編碼與座標
+    const recentSignals = [];
+    let lastSignalLogMs = 0;
+
+    function logSignal(msg, isStatusOnly = false) {
+      if (!signalDebugBar) return;
+      if (isStatusOnly) {
+        signalDebugBar.textContent = `${APP_VERSION} | 📡 ${msg}`;
+        return;
+      }
+      const now = performance.now();
+      const gap = lastSignalLogMs ? `+${Math.round(now - lastSignalLogMs)}ms` : "首發";
+      lastSignalLogMs = now;
+      recentSignals.unshift(`[${gap}] ${msg}`);
+      if (recentSignals.length > 2) recentSignals.pop();
+      signalDebugBar.textContent = `${APP_VERSION} | 📡 ${recentSignals.join("  ||  ")}`;
+    }
+
     function updateSwHeader() {
       swGearDisplay.textContent = `${swChainring}t x ${swSprocket}t · ${tireSpecs[swTireIndex].name}`;
       swDistBadge.textContent = `(${swLapDist}m)`;
     }
 
-    function logSignal(msg) {
-      if (signalDebugBar) {
-        signalDebugBar.textContent = `📡 ${msg}`;
-      }
-    }
-
-    // 初始化第二頁設定滾輪（分圈距離、前齒、後齒、輪胎規格）
     setupWheel("wheel-sw-dist", swLapDistList, swLapDistList.indexOf(swLapDist), v => `${v}m`, (val) => {
-      swLapDist = val;
-      localStorage.setItem("swLapDist", val);
-      updateSwHeader();
+      swLapDist = val; localStorage.setItem("swLapDist", val); updateSwHeader();
     });
-
     setupWheel("wheel-sw-chainring", chainringList, chainringList.indexOf(swChainring), v => `${v}t`, (val) => {
-      swChainring = val;
-      localStorage.setItem("swChainring", val);
-      updateSwHeader();
+      swChainring = val; localStorage.setItem("swChainring", val); updateSwHeader();
     });
-
     setupWheel("wheel-sw-sprocket", sprocketList, sprocketList.indexOf(swSprocket), v => `${v}t`, (val) => {
-      swSprocket = val;
-      localStorage.setItem("swSprocket", val);
-      updateSwHeader();
+      swSprocket = val; localStorage.setItem("swSprocket", val); updateSwHeader();
     });
-
     setupWheel("wheel-sw-tire", tireSpecs, swTireIndex, item => item.name, (_, idx) => {
-      swTireIndex = idx;
-      localStorage.setItem("swTireIndex", idx);
-      updateSwHeader();
+      swTireIndex = idx; localStorage.setItem("swTireIndex", idx); updateSwHeader();
     });
 
-    // 碼錶設定選單開關
     const swSettingsModal = document.getElementById("sw-settings-modal");
     openSwSettingsBtn.addEventListener("click", () => {
       swSettingsModal.classList.add("open");
@@ -1381,7 +1291,6 @@
     document.getElementById("close-sw-settings-btn").addEventListener("click", () => swSettingsModal.classList.remove("open"));
     swSettingsModal.addEventListener("click", (e) => { if (e.target === swSettingsModal) swSettingsModal.classList.remove("open"); });
 
-    // 碼錶狀態機： "IDLE" | "RUNNING" | "STOPPED"
     let swState = "IDLE";
     let startTimeMs = 0;
     let lapStartMs = 0;
@@ -1414,11 +1323,9 @@
       const swWheelCircumferenceMeters = (tireSpecs[swTireIndex].diameterMM * Math.PI) / 1000.0;
       const gearRatio = swChainring / swSprocket;
       const developmentMeters = gearRatio * swWheelCircumferenceMeters;
-
       const pedalRevolutions = actualDistanceMeters / developmentMeters;
       const rpm = (pedalRevolutions / timeSeconds) * 60.0;
       const speedKmh = (developmentMeters * rpm * 60.0) / 1000.0;
-
       return { speedKmh, rpm };
     }
 
@@ -1436,12 +1343,11 @@
           <div class="sw-lap-detail">迴轉: ${lap.rpm.toFixed(1)} RPM</div>
         </div>
       `).join("");
-
       swLapsContainer.scrollTop = swLapsContainer.scrollHeight;
     }
 
     function recordNewLap(nowMs, isFinalStop = false) {
-      const lapSec = (nowMs - lapStartMs) / 1000.0;
+      const lapSec = Math.max(0, (nowMs - lapStartMs) / 1000.0);
       if (lapSec <= 0.05) return;
 
       const lapNumber = recordedLaps.length + 1;
@@ -1461,7 +1367,6 @@
 
       swFrozenLapTime.textContent = formatShortLap(lapSec);
       swFrozenLapNum.textContent = isFinalStop ? `Lap ${lapNumber} (終點)` : `Lap ${lapNumber}`;
-
       lapStartMs = nowMs;
       renderLapsList();
     }
@@ -1469,22 +1374,19 @@
     function tick() {
       if (swState !== "RUNNING") return;
       const now = performance.now();
-      const elapsedSec = (now - startTimeMs) / 1000.0;
-      const currentLapSec = (now - lapStartMs) / 1000.0;
+      const elapsedSec = Math.max(0, (now - startTimeMs) / 1000.0);
+      const currentLapSec = Math.max(0, (now - lapStartMs) / 1000.0);
 
       swElapsedDisplay.textContent = formatStopwatchSeconds(elapsedSec);
       swRunningLapDisplay.textContent = formatStopwatchSeconds(currentLapSec);
       swRunningLapLabel.textContent = `分段時間 (Lap ${recordedLaps.length + 1})`;
-
       rafId = requestAnimationFrame(tick);
     }
 
-    function handleStartStopAction() {
+    function handleStartStopAction(customNowMs) {
+      const now = customNowMs ?? performance.now();
       if (swState === "IDLE" || swState === "STOPPED") {
-        if (swState === "STOPPED") {
-          resetStopwatch(true);
-        }
-        const now = performance.now();
+        if (swState === "STOPPED") resetStopwatch(true);
         startTimeMs = now;
         lapStartMs = now;
         swState = "RUNNING";
@@ -1495,7 +1397,6 @@
         requestWakeLock();
         rafId = requestAnimationFrame(tick);
       } else if (swState === "RUNNING") {
-        const now = performance.now();
         cancelAnimationFrame(rafId);
         swState = "STOPPED";
         swStartStopText.textContent = "開始";
@@ -1503,8 +1404,8 @@
         playBeep("stop");
         releaseWakeLock();
 
-        const totalElapsedSec = (now - startTimeMs) / 1000.0;
-        const finalLapSec = (now - lapStartMs) / 1000.0;
+        const totalElapsedSec = Math.max(0, (now - startTimeMs) / 1000.0);
+        const finalLapSec = Math.max(0, (now - lapStartMs) / 1000.0);
 
         recordNewLap(now, true);
 
@@ -1541,9 +1442,9 @@
       renderLapsList();
     }
 
-    function handleLapResetAction() {
+    function handleLapResetAction(customNowMs) {
+      const now = customNowMs ?? performance.now();
       if (swState === "RUNNING") {
-        const now = performance.now();
         playBeep("lap");
         recordNewLap(now, false);
         swRunningLapLabel.textContent = `分段時間 (Lap ${recordedLaps.length + 1})`;
@@ -1553,7 +1454,7 @@
     }
 
     // ==========================================
-    // 7. 常駐盲按與 60ms 取消緩衝互斥鎖（徹底杜絕按分段時誤觸開始/停止）
+    // 7. 常駐盲按、零誤差 120ms 緩衝鎖與雙事件診斷
     // ==========================================
     let lastAnyActionMs = 0;
     let pendingStartStopTimer = null;
@@ -1563,41 +1464,6 @@
         clearTimeout(pendingStartStopTimer);
         pendingStartStopTimer = null;
       }
-    }
-
-    // 執行【開始 / 停止】：支援 delayMs 緩衝，若期間收到分段訊號則自動取消
-    function triggerStartStopSafe(sourceLabel, delayMs = 0) {
-      const now = performance.now();
-      if (now - lastAnyActionMs < 400) return;
-
-      cancelPendingStartStop();
-
-      const execute = () => {
-        pendingStartStopTimer = null;
-        const execNow = performance.now();
-        if (execNow - lastAnyActionMs < 400) return;
-        lastAnyActionMs = execNow;
-        logSignal(`${sourceLabel} -> 開始/停止`);
-        flashButtonVisual(swStartStopBtn);
-        handleStartStopAction();
-      };
-
-      if (delayMs > 0) {
-        pendingStartStopTimer = setTimeout(execute, delayMs);
-      } else {
-        execute();
-      }
-    }
-
-    // 執行【分段 / 歸零】：最高優先權，立即取消任何待命中的開始/停止，並鎖定 400ms
-    function triggerLapResetSafe(sourceLabel) {
-      cancelPendingStartStop();
-      const now = performance.now();
-      if (now - lastAnyActionMs < 350) return;
-      lastAnyActionMs = now;
-      logSignal(`${sourceLabel} -> 分段/歸零`);
-      flashButtonVisual(swLapResetBtn);
-      handleLapResetAction();
     }
 
     function flashButtonVisual(btnEl) {
@@ -1613,7 +1479,7 @@
 
     function isPointNearLapButton(clientX, clientY) {
       const rect = swLapResetBtn.getBoundingClientRect();
-      const pad = 32;
+      const pad = 40;
       return (
         clientX >= rect.left - pad &&
         clientX <= rect.right + pad &&
@@ -1622,13 +1488,53 @@
       );
     }
 
-    // A) 灰色「分段/歸零」與紅色「開始/停止」圓形按鈕本體
+    // 執行【開始 / 停止】：緩衝期間保存按壓當下的精準時間點 pressTimeMs，零計時誤差
+    function triggerStartStopSafe(sourceLabel, delayMs = 0) {
+      const pressTimeMs = performance.now();
+      if (pressTimeMs - lastAnyActionMs < 450) {
+        logSignal(`(已攔截) ${sourceLabel}`);
+        return;
+      }
+
+      cancelPendingStartStop();
+
+      const execute = () => {
+        pendingStartStopTimer = null;
+        if (performance.now() - lastAnyActionMs < 450) return;
+        lastAnyActionMs = performance.now();
+        logSignal(`${sourceLabel} ➔ 開始/停止`);
+        flashButtonVisual(swStartStopBtn);
+        handleStartStopAction(pressTimeMs);
+      };
+
+      if (delayMs > 0) {
+        pendingStartStopTimer = setTimeout(execute, delayMs);
+      } else {
+        execute();
+      }
+    }
+
+    // 執行【分段 / 歸零】：最高優先權，立即取消任何待命中的盲按左鍵
+    function triggerLapResetSafe(sourceLabel) {
+      cancelPendingStartStop();
+      const now = performance.now();
+      if (now - lastAnyActionMs < 350) {
+        logSignal(`(已攔截) ${sourceLabel}`);
+        return;
+      }
+      lastAnyActionMs = now;
+      logSignal(`${sourceLabel} ➔ 分段/歸零`);
+      flashButtonVisual(swLapResetBtn);
+      handleLapResetAction(now);
+    }
+
+    // A) 畫面圓鈕本體
     swLapResetBtn.addEventListener("pointerdown", (e) => {
       if (e.button !== 0 && e.button !== undefined) return;
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
-      triggerLapResetSafe("點擊畫面【分段/歸零】鈕");
+      triggerLapResetSafe(`點分段鈕(${e.pointerType})`);
     });
 
     swStartStopBtn.addEventListener("pointerdown", (e) => {
@@ -1636,10 +1542,10 @@
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
-      triggerStartStopSafe("點擊畫面【開始/停止】鈕", 0);
+      triggerStartStopSafe(`點開始鈕(${e.pointerType})`, 0);
     });
 
-    // B) 鍵盤按鍵監聽 (S = 開始/停止, D = 分段/歸零)
+    // B) 鍵盤 (S / D)
     window.addEventListener("keydown", (e) => {
       if (e.repeat || !canTriggerRemoteControl()) return;
       const keyLower = (e.key || "").toLowerCase();
@@ -1647,11 +1553,11 @@
       if (e.code === "KeyD" || keyLower === "d") {
         e.preventDefault();
         e.stopPropagation();
-        triggerLapResetSafe(`鍵盤 [${e.key}]`);
+        triggerLapResetSafe(`鍵盤D`);
       } else if (e.code === "KeyS" || keyLower === "s") {
         e.preventDefault();
         e.stopPropagation();
-        triggerStartStopSafe(`鍵盤 [${e.key}]`, 0);
+        triggerStartStopSafe(`鍵盤S`, 0);
       }
     }, true);
 
@@ -1659,7 +1565,9 @@
     window.addEventListener("pointerdown", (e) => {
       if (!canTriggerRemoteControl()) return;
 
-      // 1. 滑鼠分段按鍵：側鍵 5 (button 4)、右鍵 (button 2)、中鍵 (button 1)
+      const coord = `${Math.round(e.clientX)},${Math.round(e.clientY)}`;
+
+      // 1. 滑鼠分段鍵：側鍵 5 (btn=4)、右鍵 (btn=2)、中鍵 (btn=1)
       if (
         e.button === 4 ||
         e.button === 2 ||
@@ -1669,63 +1577,58 @@
       ) {
         e.preventDefault();
         e.stopPropagation();
-        const btnName = e.button === 4 || (e.buttons & 16) ? "滑鼠側鍵 5" : e.button === 2 ? "滑鼠右鍵" : "滑鼠中鍵";
-        triggerLapResetSafe(btnName);
+        triggerLapResetSafe(`滑鼠btn=${e.button}/mask=${e.buttons}`);
         return;
       }
 
-      // 2. 滑鼠側鍵 4 (button 3 或 buttons 8) -> 開始/停止
+      // 2. 滑鼠側鍵 4 (btn=3)
       if (e.button === 3 || (e.buttons & 8) === 8) {
         e.preventDefault();
         e.stopPropagation();
-        triggerStartStopSafe("滑鼠側鍵 4", 0);
+        triggerStartStopSafe(`側鍵4(btn=${e.button})`, 0);
         return;
       }
 
-      // 3. 忽略頂部切換導覽列與設定彈窗
       if (e.target.closest(".top-bar") || e.target.closest(".modal-backdrop")) {
         return;
       }
 
-      // 4. 若點擊落在灰色「分段鈕」或周圍 32px 安全區內 -> 分段/歸零
+      // 3. 灰色分段鈕周圍 40px 安全區
       if (e.target.closest("#sw-lap-reset-btn") || isPointNearLapButton(e.clientX, e.clientY)) {
         e.preventDefault();
         e.stopPropagation();
-        triggerLapResetSafe("分段鈕區域點擊");
+        triggerLapResetSafe(`分段區btn=0@(${coord})`);
         return;
       }
 
-      // 5. 全畫面空白區域左鍵 (Button 0) -> 開始/停止（使用 60ms 緩衝，若側鍵伴隨分段訊號則自動取消）
+      // 4. 全畫面空白區左鍵 (btn=0)：啟用 120ms 零誤差緩衝，若後方緊接分段訊號會自動取消
       if (e.button === 0) {
         e.preventDefault();
-        triggerStartStopSafe("全畫面盲按左鍵", 60);
+        triggerStartStopSafe(`空白左鍵btn=0@(${coord})`, 120);
       }
     });
 
-    // D) 攔截滑鼠右鍵選單 (contextmenu)：直接作為「分段 / 歸零」
+    // D) 滑鼠右鍵選單 (contextmenu) 攔截為分段
     window.addEventListener("contextmenu", (e) => {
       if (!canTriggerRemoteControl()) return;
       if (e.target.closest(".top-bar")) return;
       e.preventDefault();
       e.stopPropagation();
-      triggerLapResetSafe("滑鼠右鍵選單");
+      triggerLapResetSafe("右鍵選單");
     }, true);
 
-    // E) 滑鼠滾輪撥動監聽 (wheel)：常駐開啟，撥一下滾輪直接觸發「分段 / 歸零」
+    // E) 滑鼠滾輪撥動 -> 分段
     let lastWheelRawMs = 0;
     window.addEventListener("wheel", (e) => {
       if (!canTriggerRemoteControl()) return;
       e.preventDefault();
-
       const now = performance.now();
       const gap = now - lastWheelRawMs;
       lastWheelRawMs = now;
-
       if (gap < 180) return;
-      triggerLapResetSafe("滑鼠滾輪撥動");
+      triggerLapResetSafe("滾輪");
     }, { passive: false });
 
-    // 阻擋電腦瀏覽器側鍵預設上一頁/下一頁跳轉
     ["mouseup", "auxclick"].forEach((evtName) => {
       window.addEventListener(evtName, (e) => {
         if (!canTriggerRemoteControl()) return;
@@ -1736,30 +1639,30 @@
       }, true);
     });
 
-    // 初次啟動載入
     updateCalculations();
     updateSwHeader();
 
     // ==========================================
-    // 8. Service Worker 永久離線快取註冊與前端雙重寫入
+    // 8. Service Worker 離線快取註冊 (v3)
     // ==========================================
     async function initOfflineSupport() {
       if (!("serviceWorker" in navigator)) {
-        logSignal("⚠️ 此瀏覽器不支援離線快取");
+        logSignal("⚠️ 此瀏覽器不支援離線快取", true);
         return;
       }
       try {
-        await navigator.serviceWorker.register("./sw.js", { scope: "./" });
+        const reg = await navigator.serviceWorker.register("./sw.js", { scope: "./" });
+        await reg.update();
         await navigator.serviceWorker.ready;
 
         if ("caches" in window) {
-          const cache = await caches.open("ratios-sw-cache-v2");
+          const cache = await caches.open("ratios-sw-cache-v3");
           await cache.addAll([window.location.href, "./", "./index.html"]).catch(() => {});
         }
 
-        logSignal("✅ 離線快取與常駐盲按已就緒");
+        logSignal("✅ 離線快取與常駐盲按已就緒", true);
       } catch (err) {
-        logSignal("⚠️ 離線未啟用：請確認 GitHub 已建立 sw.js 檔案");
+        logSignal("⚠️ 離線未啟用：請確認 GitHub 已建立 sw.js", true);
       }
     }
 
