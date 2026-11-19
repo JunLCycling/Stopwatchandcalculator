@@ -550,6 +550,78 @@
       text-overflow: ellipsis;
     }
 
+    /* ==========================================
+       分段 4 秒全螢幕大字覆蓋層（穿透不擋操作）
+       ========================================== */
+    .lap-fullscreen-overlay {
+      position: fixed;
+      inset: 0;
+      background: #000000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 90;
+      pointer-events: none;
+      padding: env(safe-area-inset-top, 12px) env(safe-area-inset-right, 16px) env(safe-area-inset-bottom, 12px) env(safe-area-inset-left, 16px);
+    }
+
+    .lap-fullscreen-overlay.visible {
+      display: flex;
+    }
+
+    .lap-fs-number {
+      font-size: min(52vw, 74vh);
+      font-weight: 800;
+      line-height: 0.95;
+      color: #ffffff;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.03em;
+      text-align: center;
+    }
+
+    .lap-fs-number.pulse {
+      animation: lapNumberPulse 0.18s ease-out;
+    }
+
+    @keyframes lapNumberPulse {
+      0%   { transform: scale(0.94); opacity: 0.65; }
+      100% { transform: scale(1);    opacity: 1; }
+    }
+
+    .lap-fs-meta {
+      margin-top: min(2vh, 14px);
+      font-size: clamp(18px, 4vmin, 34px);
+      font-weight: 700;
+      color: var(--cyan);
+      letter-spacing: 0.5px;
+    }
+
+    .lap-fs-progress-track {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: env(safe-area-inset-bottom, 0px);
+      height: 5px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .lap-fs-progress-bar {
+      height: 100%;
+      width: 100%;
+      background: var(--yellow);
+      transform-origin: left center;
+    }
+
+    .lap-fs-progress-bar.running {
+      animation: lapCountdownBar 4s linear forwards;
+    }
+
+    @keyframes lapCountdownBar {
+      from { transform: scaleX(1); }
+      to   { transform: scaleX(0); }
+    }
+
     /* 彈出式選單共用樣式 */
     .modal-backdrop {
       position: fixed;
@@ -884,7 +956,7 @@
       </div>
     </div>
 
-    <!-- 頁面 2：迴轉碼錶 (常駐盲按 v3) -->
+    <!-- 頁面 2：迴轉碼錶 (常駐盲按 + 分段4秒全螢幕大字 v4) -->
     <div id="page-stopwatch" class="page-view">
       <div class="sw-gear-header">
         <span id="sw-gear-display" class="sw-gear-title">50t x 13t · 700 X 20</span>
@@ -927,7 +999,7 @@
         </div>
 
         <div id="sw-laps-container" class="sw-right-box">
-          <div class="sw-empty-hint">尚無分段紀錄<br>🖱️ 滑鼠盲按常駐開啟：<br>【全畫面左鍵 / S = 開始/停止】<br>【滾輪 / 右鍵 / 側鍵5 / D = 分段/歸零】</div>
+          <div class="sw-empty-hint">尚無分段紀錄<br>🖱️ 滑鼠盲按常駐開啟：<br>【全畫面左鍵 / S = 開始/停止】<br>【右鍵 / 滾輪 / D = 分段/歸零】</div>
         </div>
       </div>
 
@@ -938,11 +1010,20 @@
         </button>
         <button id="sw-lap-reset-btn" class="sw-circle-btn btn-grey" type="button">
           <span id="sw-lap-reset-text" class="sw-btn-main-text">分段</span>
-          <span class="sw-btn-key-hint">[滾輪 / D]</span>
+          <span class="sw-btn-key-hint">[右鍵 / 滾輪]</span>
         </button>
       </div>
 
-      <div id="signal-debug-bar" class="signal-debug-bar">v3 | 📡 狀態：正在檢查離線快取...</div>
+      <div id="signal-debug-bar" class="signal-debug-bar">v4 | 📡 狀態：正在檢查離線快取...</div>
+    </div>
+  </div>
+
+  <!-- 分段 4 秒全螢幕大字顯示層 -->
+  <div id="lap-fullscreen-overlay" class="lap-fullscreen-overlay" aria-hidden="true">
+    <div id="lap-fs-number" class="lap-fs-number">0.0</div>
+    <div id="lap-fs-meta" class="lap-fs-meta">Lap 1 · 250m</div>
+    <div class="lap-fs-progress-track">
+      <div id="lap-fs-progress-bar" class="lap-fs-progress-bar"></div>
     </div>
   </div>
 
@@ -987,7 +1068,8 @@
     // ==========================================
     // 1. 共同資料清單設定
     // ==========================================
-    const APP_VERSION = "v3";
+    const APP_VERSION = "v4";
+    const LAP_FULLSCREEN_MS = 4000; // 分段全螢幕大字顯示毫秒數 (4 秒)
     const ITEM_HEIGHT = 34;
 
     const chainringList = Array.from({ length: 75 - 45 + 1 }, (_, i) => 45 + i);
@@ -1045,7 +1127,7 @@
     window.addEventListener("orientationchange", () => setTimeout(syncAllWheelsScroll, 120));
 
     // ==========================================
-    // 2. 頁面切換
+    // 2. 頁面切換與分段 4 秒全螢幕控制
     // ==========================================
     const tabCalcBtn = document.getElementById("tab-calc");
     const tabSwBtn   = document.getElementById("tab-sw");
@@ -1053,7 +1135,45 @@
     const pageSw     = document.getElementById("page-stopwatch");
     const openSwSettingsBtn = document.getElementById("open-sw-settings-btn");
 
+    const lapFsOverlay     = document.getElementById("lap-fullscreen-overlay");
+    const lapFsNumber      = document.getElementById("lap-fs-number");
+    const lapFsMeta        = document.getElementById("lap-fs-meta");
+    const lapFsProgressBar = document.getElementById("lap-fs-progress-bar");
+    let lapFullscreenTimer = null;
+
+    function hideLapFullscreen() {
+      if (lapFullscreenTimer !== null) {
+        clearTimeout(lapFullscreenTimer);
+        lapFullscreenTimer = null;
+      }
+      lapFsOverlay.classList.remove("visible");
+      lapFsProgressBar.classList.remove("running");
+    }
+
+    function showLapFullscreen(shortTimeText, lapNumber, cumDist) {
+      if (lapFullscreenTimer !== null) {
+        clearTimeout(lapFullscreenTimer);
+        lapFullscreenTimer = null;
+      }
+
+      lapFsNumber.textContent = shortTimeText;
+      lapFsMeta.textContent = `Lap ${lapNumber} · ${cumDist}m`;
+      lapFsOverlay.classList.add("visible");
+
+      // 觸發重繪，確保連續分段時大字閃爍與 4 秒進度條重新啟動
+      lapFsNumber.classList.remove("pulse");
+      lapFsProgressBar.classList.remove("running");
+      void lapFsOverlay.offsetWidth;
+      lapFsNumber.classList.add("pulse");
+      lapFsProgressBar.classList.add("running");
+
+      lapFullscreenTimer = setTimeout(() => {
+        hideLapFullscreen();
+      }, LAP_FULLSCREEN_MS);
+    }
+
     tabCalcBtn.addEventListener("click", () => {
+      hideLapFullscreen();
       tabCalcBtn.classList.add("active");
       tabSwBtn.classList.remove("active");
       pageCalc.classList.add("active");
@@ -1244,7 +1364,6 @@
     const swLapResetText      = document.getElementById("sw-lap-reset-text");
     const signalDebugBar      = document.getElementById("signal-debug-bar");
 
-    // 保留最近兩筆原始訊號，方便一眼看出側鍵實際送出的編碼與座標
     const recentSignals = [];
     let lastSignalLogMs = 0;
 
@@ -1282,6 +1401,7 @@
 
     const swSettingsModal = document.getElementById("sw-settings-modal");
     openSwSettingsBtn.addEventListener("click", () => {
+      hideLapFullscreen();
       swSettingsModal.classList.add("open");
       document.getElementById("wheel-sw-dist").scrollTop = swLapDistList.indexOf(swLapDist) * ITEM_HEIGHT;
       document.getElementById("wheel-sw-chainring").scrollTop = chainringList.indexOf(swChainring) * ITEM_HEIGHT;
@@ -1306,6 +1426,7 @@
       return sec.toFixed(2).padStart(5, "0");
     }
 
+    // 擷取個位數與小數第一位（如 14.96 -> 4.9）
     function formatShortLap(sec) {
       const centi = Math.round(sec * 100);
       const onesAndTenths = Math.floor((centi % 1000) / 10);
@@ -1331,7 +1452,7 @@
 
     function renderLapsList() {
       if (recordedLaps.length === 0) {
-        swLapsContainer.innerHTML = `<div class="sw-empty-hint">尚無分段紀錄<br>🖱️ 滑鼠盲按常駐開啟：<br>【全畫面左鍵 / S = 開始/停止】<br>【滾輪 / 右鍵 / 側鍵5 / D = 分段/歸零】</div>`;
+        swLapsContainer.innerHTML = `<div class="sw-empty-hint">尚無分段紀錄<br>🖱️ 滑鼠盲按常駐開啟：<br>【全畫面左鍵 / S = 開始/停止】<br>【右鍵 / 滾輪 / D = 分段/歸零】</div>`;
         return;
       }
 
@@ -1365,10 +1486,16 @@
         rpm
       });
 
-      swFrozenLapTime.textContent = formatShortLap(lapSec);
+      const shortText = formatShortLap(lapSec);
+      swFrozenLapTime.textContent = shortText;
       swFrozenLapNum.textContent = isFinalStop ? `Lap ${lapNumber} (終點)` : `Lap ${lapNumber}`;
       lapStartMs = nowMs;
       renderLapsList();
+
+      // 計時中按下「分段」時，將個位數+小數第一位放大成全螢幕 4 秒
+      if (!isFinalStop) {
+        showLapFullscreen(shortText, lapNumber, cumDist);
+      }
     }
 
     function tick() {
@@ -1387,6 +1514,7 @@
       const now = customNowMs ?? performance.now();
       if (swState === "IDLE" || swState === "STOPPED") {
         if (swState === "STOPPED") resetStopwatch(true);
+        hideLapFullscreen();
         startTimeMs = now;
         lapStartMs = now;
         swState = "RUNNING";
@@ -1397,6 +1525,7 @@
         requestWakeLock();
         rafId = requestAnimationFrame(tick);
       } else if (swState === "RUNNING") {
+        hideLapFullscreen();
         cancelAnimationFrame(rafId);
         swState = "STOPPED";
         swStartStopText.textContent = "開始";
@@ -1426,6 +1555,7 @@
     }
 
     function resetStopwatch(silent = false) {
+      hideLapFullscreen();
       cancelAnimationFrame(rafId);
       swState = "IDLE";
       recordedLaps = [];
@@ -1488,7 +1618,6 @@
       );
     }
 
-    // 執行【開始 / 停止】：緩衝期間保存按壓當下的精準時間點 pressTimeMs，零計時誤差
     function triggerStartStopSafe(sourceLabel, delayMs = 0) {
       const pressTimeMs = performance.now();
       if (pressTimeMs - lastAnyActionMs < 450) {
@@ -1514,7 +1643,6 @@
       }
     }
 
-    // 執行【分段 / 歸零】：最高優先權，立即取消任何待命中的盲按左鍵
     function triggerLapResetSafe(sourceLabel) {
       cancelPendingStartStop();
       const now = performance.now();
@@ -1567,7 +1695,6 @@
 
       const coord = `${Math.round(e.clientX)},${Math.round(e.clientY)}`;
 
-      // 1. 滑鼠分段鍵：側鍵 5 (btn=4)、右鍵 (btn=2)、中鍵 (btn=1)
       if (
         e.button === 4 ||
         e.button === 2 ||
@@ -1581,7 +1708,6 @@
         return;
       }
 
-      // 2. 滑鼠側鍵 4 (btn=3)
       if (e.button === 3 || (e.buttons & 8) === 8) {
         e.preventDefault();
         e.stopPropagation();
@@ -1593,7 +1719,6 @@
         return;
       }
 
-      // 3. 灰色分段鈕周圍 40px 安全區
       if (e.target.closest("#sw-lap-reset-btn") || isPointNearLapButton(e.clientX, e.clientY)) {
         e.preventDefault();
         e.stopPropagation();
@@ -1601,7 +1726,6 @@
         return;
       }
 
-      // 4. 全畫面空白區左鍵 (btn=0)：啟用 120ms 零誤差緩衝，若後方緊接分段訊號會自動取消
       if (e.button === 0) {
         e.preventDefault();
         triggerStartStopSafe(`空白左鍵btn=0@(${coord})`, 120);
@@ -1643,7 +1767,7 @@
     updateSwHeader();
 
     // ==========================================
-    // 8. Service Worker 離線快取註冊 (v3)
+    // 8. Service Worker 離線快取註冊 (v4)
     // ==========================================
     async function initOfflineSupport() {
       if (!("serviceWorker" in navigator)) {
@@ -1656,7 +1780,7 @@
         await navigator.serviceWorker.ready;
 
         if ("caches" in window) {
-          const cache = await caches.open("ratios-sw-cache-v3");
+          const cache = await caches.open("ratios-sw-cache-v4");
           await cache.addAll([window.location.href, "./", "./index.html"]).catch(() => {});
         }
 
