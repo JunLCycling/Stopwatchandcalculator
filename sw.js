@@ -1,4 +1,4 @@
-const CACHE_NAME = "ratios-sw-cache-v3";
+const CACHE_NAME = "ratios-sw-cache-v4";
 const CORE_ASSETS = ["./", "./index.html"];
 
 // 1. 安裝時強制從伺服器抓取最新版存入 iPad 本機快取
@@ -17,7 +17,7 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-// 2. 啟動時清除舊版 (v1/v2) 快取並立即接管頁面
+// 2. 啟動時清除舊版 (v1~v3) 快取並立即接管頁面
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
