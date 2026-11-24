@@ -1,24 +1,63 @@
-// 簡報筆與鍵盤統一監聽（與滑鼠盲按完全獨立、可同時並存）
-const START_STOP_KEYS = new Set(["KeyS", "ArrowLeft", "ArrowUp", "PageUp"]);
-const LAP_RESET_KEYS  = new Set(["KeyD", "ArrowRight", "ArrowDown", "PageDown"]);
+const CACHE_NAME = "ratios-sw-cache-v5";
+const CORE_ASSETS = ["./", "./index.html"];
 
-window.addEventListener("keydown", (e) => {
-  if (e.repeat || !canTriggerRemoteControl()) return;
+// 1. 安裝時強制從伺服器抓取最新版存入 iPad 本機快取
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(
+        CORE_ASSETS.map((url) =>
+          fetch(url, { cache: "reload" }).then((res) => {
+            if (res.ok) return cache.put(url, res);
+          })
+        )
+      )
+    )
+  );
+  self.skipWaiting();
+});
 
-  const code = e.code || "";
-  const key  = e.key || "";
-  const keyLower = key.toLowerCase();
+// 2. 啟動時清除舊版 (v1~v4) 快取並立即接管頁面
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
+      )
+    )
+  );
+  self.clients.claim();
+});
 
-  // 無論是否命中，先在底部狀態列顯示收到的原始鍵碼方便驗證
-  logSignal(`外接鍵 [${key || code}]`);
+// 3. 攔截請求：有網抓最新版並更新快取；沒網時無條件回傳本機快取畫面
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
 
-  if (LAP_RESET_KEYS.has(code) || LAP_RESET_KEYS.has(key) || keyLower === "d") {
-    e.preventDefault();
-    e.stopPropagation();
-    triggerLapResetSafe(`簡報筆/鍵盤(${key || code})`);
-  } else if (START_STOP_KEYS.has(code) || START_STOP_KEYS.has(key) || keyLower === "s") {
-    e.preventDefault();
-    e.stopPropagation();
-    triggerStartStopSafe(`簡報筆/鍵盤(${key || code})`, 0);
-  }
-}, true);
+  event.respondWith(
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
+        return networkResponse;
+      })
+      .catch(async () => {
+        const cache = await caches.open(CACHE_NAME);
+        const matched = await cache.match(event.request, { ignoreSearch: true });
+        if (matched) return matched;
+
+        if (
+          event.request.mode === "navigate" ||
+          event.request.destination === "document"
+        ) {
+          return (
+            (await cache.match("./index.html", { ignoreSearch: true })) ||
+            (await cache.match("./", { ignoreSearch: true }))
+          );
+        }
+      })
+  );
+});
