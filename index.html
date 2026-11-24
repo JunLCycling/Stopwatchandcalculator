@@ -518,10 +518,10 @@
     }
 
     .sw-btn-key-hint {
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 700;
       opacity: 0.85;
-      letter-spacing: 0.2px;
+      letter-spacing: 0.1px;
       pointer-events: none;
     }
 
@@ -892,7 +892,7 @@
       .sw-controls { gap: 26px; padding: 0 6px; }
       .sw-circle-btn { width: 102px; height: 102px; }
       .sw-btn-main-text { font-size: 24px; }
-      .sw-btn-key-hint { font-size: 12px; }
+      .sw-btn-key-hint { font-size: 11px; }
 
       .signal-debug-bar {
         font-size: 13.5px;
@@ -956,7 +956,7 @@
       </div>
     </div>
 
-    <!-- 頁面 2：迴轉碼錶 (常駐盲按 + 分段4秒全螢幕大字 v4) -->
+    <!-- 頁面 2：迴轉碼錶 (支援 R500 配置A + 滑鼠盲按 + 分段4秒全螢幕 v5) -->
     <div id="page-stopwatch" class="page-view">
       <div class="sw-gear-header">
         <span id="sw-gear-display" class="sw-gear-title">50t x 13t · 700 X 20</span>
@@ -999,22 +999,22 @@
         </div>
 
         <div id="sw-laps-container" class="sw-right-box">
-          <div class="sw-empty-hint">尚無分段紀錄<br>🖱️ 滑鼠盲按常駐開啟：<br>【全畫面左鍵 / S = 開始/停止】<br>【右鍵 / 滾輪 / D = 分段/歸零】</div>
+          <div class="sw-empty-hint">尚無分段紀錄<br>📡 R500 簡報筆 (配置A) / 滑鼠盲按：<br>【小鍵(後退) / 左鍵 / S = 開始/停止】<br>【大鍵(前進) / 右鍵 / 滾輪 / D = 分段/歸零】</div>
         </div>
       </div>
 
       <div class="sw-controls">
         <button id="sw-start-stop-btn" class="sw-circle-btn btn-red" type="button">
           <span id="sw-start-stop-text" class="sw-btn-main-text">開始</span>
-          <span class="sw-btn-key-hint">[左鍵 / S]</span>
+          <span class="sw-btn-key-hint">[小鍵 / 左鍵 / S]</span>
         </button>
         <button id="sw-lap-reset-btn" class="sw-circle-btn btn-grey" type="button">
           <span id="sw-lap-reset-text" class="sw-btn-main-text">分段</span>
-          <span class="sw-btn-key-hint">[右鍵 / 滾輪]</span>
+          <span class="sw-btn-key-hint">[大鍵 / 右鍵 / 滾輪]</span>
         </button>
       </div>
 
-      <div id="signal-debug-bar" class="signal-debug-bar">v4 | 📡 狀態：正在檢查離線快取...</div>
+      <div id="signal-debug-bar" class="signal-debug-bar">v5 | 📡 狀態：正在檢查離線快取...</div>
     </div>
   </div>
 
@@ -1068,8 +1068,8 @@
     // ==========================================
     // 1. 共同資料清單設定
     // ==========================================
-    const APP_VERSION = "v4";
-    const LAP_FULLSCREEN_MS = 2000; // 分段全螢幕大字顯示毫秒數 (4 秒)
+    const APP_VERSION = "v5";
+    const LAP_FULLSCREEN_MS = 4000; // 分段全螢幕大字顯示毫秒數 (4 秒)
     const ITEM_HEIGHT = 34;
 
     const chainringList = Array.from({ length: 75 - 45 + 1 }, (_, i) => 45 + i);
@@ -1126,6 +1126,13 @@
     window.addEventListener("resize", syncAllWheelsScroll);
     window.addEventListener("orientationchange", () => setTimeout(syncAllWheelsScroll, 120));
 
+    // 清除按鈕焦點，防止 iPad 外接藍牙簡報筆/鍵盤誤觸焦點元件
+    function clearFocus() {
+      if (document.activeElement && typeof document.activeElement.blur === "function") {
+        document.activeElement.blur();
+      }
+    }
+
     // ==========================================
     // 2. 頁面切換與分段 4 秒全螢幕控制
     // ==========================================
@@ -1160,7 +1167,6 @@
       lapFsMeta.textContent = `Lap ${lapNumber} · ${cumDist}m`;
       lapFsOverlay.classList.add("visible");
 
-      // 觸發重繪，確保連續分段時大字閃爍與 4 秒進度條重新啟動
       lapFsNumber.classList.remove("pulse");
       lapFsProgressBar.classList.remove("running");
       void lapFsOverlay.offsetWidth;
@@ -1173,6 +1179,7 @@
     }
 
     tabCalcBtn.addEventListener("click", () => {
+      clearFocus();
       hideLapFullscreen();
       tabCalcBtn.classList.add("active");
       tabSwBtn.classList.remove("active");
@@ -1183,6 +1190,7 @@
     });
 
     tabSwBtn.addEventListener("click", () => {
+      clearFocus();
       tabSwBtn.classList.add("active");
       tabCalcBtn.classList.remove("active");
       pageSw.classList.add("active");
@@ -1287,8 +1295,16 @@
       tireModal.classList.add("open");
       wheelTireEl.scrollTop = selectedTireIndex * ITEM_HEIGHT;
     });
-    document.getElementById("close-tire-btn").addEventListener("click", () => tireModal.classList.remove("open"));
-    tireModal.addEventListener("click", (e) => { if (e.target === tireModal) tireModal.classList.remove("open"); });
+    document.getElementById("close-tire-btn").addEventListener("click", () => {
+      tireModal.classList.remove("open");
+      clearFocus();
+    });
+    tireModal.addEventListener("click", (e) => {
+      if (e.target === tireModal) {
+        tireModal.classList.remove("open");
+        clearFocus();
+      }
+    });
 
     // ==========================================
     // 5. 音效 & 螢幕恆亮 (Wake Lock)
@@ -1408,8 +1424,16 @@
       document.getElementById("wheel-sw-sprocket").scrollTop = sprocketList.indexOf(swSprocket) * ITEM_HEIGHT;
       document.getElementById("wheel-sw-tire").scrollTop = swTireIndex * ITEM_HEIGHT;
     });
-    document.getElementById("close-sw-settings-btn").addEventListener("click", () => swSettingsModal.classList.remove("open"));
-    swSettingsModal.addEventListener("click", (e) => { if (e.target === swSettingsModal) swSettingsModal.classList.remove("open"); });
+    document.getElementById("close-sw-settings-btn").addEventListener("click", () => {
+      swSettingsModal.classList.remove("open");
+      clearFocus();
+    });
+    swSettingsModal.addEventListener("click", (e) => {
+      if (e.target === swSettingsModal) {
+        swSettingsModal.classList.remove("open");
+        clearFocus();
+      }
+    });
 
     let swState = "IDLE";
     let startTimeMs = 0;
@@ -1452,7 +1476,7 @@
 
     function renderLapsList() {
       if (recordedLaps.length === 0) {
-        swLapsContainer.innerHTML = `<div class="sw-empty-hint">尚無分段紀錄<br>🖱️ 滑鼠盲按常駐開啟：<br>【全畫面左鍵 / S = 開始/停止】<br>【右鍵 / 滾輪 / D = 分段/歸零】</div>`;
+        swLapsContainer.innerHTML = `<div class="sw-empty-hint">尚無分段紀錄<br>📡 R500 簡報筆 (配置A) / 滑鼠盲按：<br>【小鍵(後退) / 左鍵 / S = 開始/停止】<br>【大鍵(前進) / 右鍵 / 滾輪 / D = 分段/歸零】</div>`;
         return;
       }
 
@@ -1584,7 +1608,7 @@
     }
 
     // ==========================================
-    // 7. 常駐盲按、零誤差 120ms 緩衝鎖與雙事件診斷
+    // 7. R500 簡報筆 (配置 A) + 鍵盤 (S/D) + 滑鼠盲按控制
     // ==========================================
     let lastAnyActionMs = 0;
     let pendingStartStopTimer = null;
@@ -1662,6 +1686,7 @@
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
+      clearFocus();
       triggerLapResetSafe(`點分段鈕(${e.pointerType})`);
     });
 
@@ -1670,22 +1695,48 @@
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
+      clearFocus();
       triggerStartStopSafe(`點開始鈕(${e.pointerType})`, 0);
     });
 
-    // B) 鍵盤 (S / D)
+    // B) Logitech R500 / R500s 簡報筆 (配置 A) & 鍵盤監聽
+    // 配置 A：中間大鍵(前進) = 分段/歸零；下方小鍵(後退) = 開始/停止
+    const LAP_RESET_KEYS      = new Set(["KeyD", "ArrowRight", "Right", "ArrowDown", "Down", "PageDown"]);
+    const LAP_RESET_KEYCODES  = new Set([39, 40, 34]); // Right, Down, PageDown
+    const START_STOP_KEYS     = new Set(["KeyS", "ArrowLeft", "Left", "ArrowUp", "Up", "PageUp"]);
+    const START_STOP_KEYCODES = new Set([37, 38, 33]); // Left, Up, PageUp
+
     window.addEventListener("keydown", (e) => {
       if (e.repeat || !canTriggerRemoteControl()) return;
-      const keyLower = (e.key || "").toLowerCase();
 
-      if (e.code === "KeyD" || keyLower === "d") {
+      const code = e.code || "";
+      const key  = e.key || "";
+      const keyLower = key.toLowerCase();
+      const kc = e.keyCode || e.which || 0;
+
+      const isLapKey =
+        LAP_RESET_KEYS.has(code) ||
+        LAP_RESET_KEYS.has(key) ||
+        LAP_RESET_KEYCODES.has(kc) ||
+        keyLower === "d";
+
+      const isStartStopKey =
+        START_STOP_KEYS.has(code) ||
+        START_STOP_KEYS.has(key) ||
+        START_STOP_KEYCODES.has(kc) ||
+        keyLower === "s";
+
+      if (isLapKey) {
         e.preventDefault();
         e.stopPropagation();
-        triggerLapResetSafe(`鍵盤D`);
-      } else if (e.code === "KeyS" || keyLower === "s") {
+        triggerLapResetSafe(`R500大鍵/鍵盤(${key || code || kc})`);
+      } else if (isStartStopKey) {
         e.preventDefault();
         e.stopPropagation();
-        triggerStartStopSafe(`鍵盤S`, 0);
+        triggerStartStopSafe(`R500小鍵/鍵盤(${key || code || kc})`, 0);
+      } else {
+        // 若按到其他未對應的按鍵，顯示於底部診斷列方便確認實際鍵碼
+        logSignal(`未對應鍵 [${key || "?"} / ${code || "?"} / kc=${kc}]`);
       }
     }, true);
 
@@ -1767,7 +1818,7 @@
     updateSwHeader();
 
     // ==========================================
-    // 8. Service Worker 離線快取註冊 (v4)
+    // 8. Service Worker 離線快取註冊 (v5)
     // ==========================================
     async function initOfflineSupport() {
       if (!("serviceWorker" in navigator)) {
@@ -1780,11 +1831,11 @@
         await navigator.serviceWorker.ready;
 
         if ("caches" in window) {
-          const cache = await caches.open("ratios-sw-cache-v4");
+          const cache = await caches.open("ratios-sw-cache-v5");
           await cache.addAll([window.location.href, "./", "./index.html"]).catch(() => {});
         }
 
-        logSignal("✅ 離線快取與常駐盲按已就緒", true);
+        logSignal("✅ 離線快取與 R500 配置A 已就緒", true);
       } catch (err) {
         logSignal("⚠️ 離線未啟用：請確認 GitHub 已建立 sw.js", true);
       }
