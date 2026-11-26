@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>分數即時記錄</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --border: #1e293b;
+      --border-soft: #cbd5e1;
+
+      --sprint-bg: #dcfce7;
+      --sprint-border: #16a34a;
+      --sprint-ink: #14532d;
+
+      --gain-bg: #dbeafe;
+      --gain-border: #2563eb;
+      --gain-ink: #1e3a8a;
+
+      --loss-bg: #fee2e2;
+      --loss-border: #dc2626;
+      --loss-ink: #7f1d1d;
+
+      --double-bg: #fef3c7;
+      --double-border: #d97706;
+      --double-ink: #92400e;
+
+      --primary: #0f172a;
+      --primary-hover: #334155;
+      --radius-pill: 26px;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      overscroll-behavior: none;
+      touch-action: manipulation;
+    }
+
+    button, select, input {
+      font-family: inherit;
+      touch-action: manipulation;
+    }
+
+    .page {
+      display: none;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .page.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ================= Page 1: 項目與人數設定 ================= */
+    #page-1 {
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: var(--surface);
+    }
+
+    .setup-container {
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .setup-box {
+      width: 100%;
+      min-height: 86px;
+      border: 2.5px solid var(--border);
+      border-radius: 30px;
+      background: var(--surface);
+      padding: 12px 22px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .setup-box label {
+      font-size: 1.3rem;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .setup-box select {
+      flex: 1;
+      width: 100%;
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--ink);
+      background: transparent;
+      border: none;
+      outline: none;
+      cursor: pointer;
+      padding: 8px 4px;
+      text-align: right;
+      text-align-last: right;
+    }
+
+    .btn-confirm-main {
+      width: 100%;
+      max-width: 240px;
+      min-height: 58px;
+      border: 2.5px solid var(--border);
+      border-radius: 20px;
+      background: var(--primary);
+      color: #ffffff;
+      font-size: 1.25rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.08s ease, background 0.15s ease;
+    }
+
+    .btn-confirm-main:active {
+      transform: scale(0.97);
+      background: var(--primary-hover);
+    }
+
+    /* ================= Page 2: 號碼／隊名（與起始分數）輸入 ================= */
+    .top-header {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 14px;
+      background: var(--surface);
+      border-bottom: 1.5px solid #e2e8f0;
+    }
+
+    .header-left-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .top-header-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sprint-counter-badge {
+      flex-shrink: 0;
+      font-size: 0.9rem;
+      font-weight: 800;
+      padding: 5px 12px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      color: #475569;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .sprint-counter-badge.has-sprints {
+      background: #0f766e;
+      color: #ffffff;
+    }
+
+    .sprint-counter-badge.flash-sprint {
+      animation: sprintPop 0.55s ease;
+    }
+
+    @keyframes sprintPop {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(15, 118, 110, 0.5); }
+      35% { transform: scale(1.12); box-shadow: 0 0 0 6px rgba(15, 118, 110, 0.25); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(15, 118, 110, 0); }
+    }
+
+    .btn-ghost {
+      border: 1.5px solid var(--border-soft);
+      background: var(--surface);
+      color: var(--ink);
+      border-radius: 12px;
+      padding: 7px 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .btn-ghost:active {
+      background: #e2e8f0;
+    }
+
+    .roster-scroll {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 14px 14px 20px;
+    }
+
+    .roster-list {
+      max-width: 680px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .roster-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .roster-pill {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      height: 58px;
+      padding: 0 18px;
+      border: 2.5px solid var(--border);
+      border-radius: var(--radius-pill);
+      background: var(--surface);
+    }
+
+    .roster-idx {
+      font-size: 1.2rem;
+      font-weight: 800;
+      min-width: 32px;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .roster-bib-input {
+      flex: 1;
+      width: 100%;
+      min-width: 0;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .roster-bib-input::placeholder {
+      color: #94a3b8;
+      font-weight: 500;
+      font-size: 0.98rem;
+    }
+
+    .roster-score-circle {
+      width: 60px;
+      height: 60px;
+      flex-shrink: 0;
+      border: 2.5px solid var(--border);
+      border-radius: 50%;
+      background: var(--surface);
+      text-align: center;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--ink);
+      outline: none;
+      padding: 4px;
+      font-variant-numeric: tabular-nums;
+      -moz-appearance: textfield;
+    }
+
+    .roster-score-circle::-webkit-outer-spin-button,
+    .roster-score-circle::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .roster-score-circle:focus,
+    .roster-pill:focus-within {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+    }
+
+    .bottom-bar {
+      flex-shrink: 0;
+      padding: 12px 16px;
+      background: var(--surface);
+      border-top: 1.5px solid #e2e8f0;
+      display: flex;
+      justify-content: center;
+    }
+
+    /* ================= Page 3: 即時排行榜與計分操作 ================= */
+    #page-3 {
+      background: var(--bg);
+    }
+
+    .board-workspace {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .board-main {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .status-strip {
+      flex-shrink: 0;
+      padding: 7px 14px;
+      background: #f1f5f9;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .status-hint {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .status-pending-count {
+      font-weight: 700;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+
+    .cards-scroll {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 12px 14px 18px;
+    }
+
+    .cards-grid {
+      max-width: 760px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .rider-card {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 58px;
+      padding: 9px 18px;
+      border: 2.5px solid var(--border);
+      border-radius: var(--radius-pill);
+      background: var(--surface);
+      color: var(--ink);
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: background-color 0.1s ease, border-color 0.1s ease, transform 0.06s ease;
+    }
+
+    .rider-card:active {
+      transform: scale(0.985);
+    }
+
+    .rider-card.state-sprint {
+      background: var(--sprint-bg);
+      border-color: var(--sprint-border);
+      color: var(--sprint-ink);
+    }
+
+    .rider-card.state-gain {
+      background: var(--gain-bg);
+      border-color: var(--gain-border);
+      color: var(--gain-ink);
+    }
+
+    .rider-card.state-loss {
+      background: var(--loss-bg);
+      border-color: var(--loss-border);
+      color: var(--loss-ink);
+    }
+
+    .rider-card.flash-updated {
+      animation: scoreFlash 0.45s ease;
+    }
+
+    @keyframes scoreFlash {
+      0% { box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.25); }
+      100% { box-shadow: 0 0 0 0 rgba(15, 23, 42, 0); }
+    }
+
+    .rider-main-info {
+      flex: 1;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      font-size: clamp(1.2rem, 4.2vw, 1.5rem);
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .rider-rank-mini {
+      flex-shrink: 0;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--muted);
+      min-width: 22px;
+    }
+
+    .rider-card.state-sprint .rider-rank-mini,
+    .rider-card.state-gain .rider-rank-mini,
+    .rider-card.state-loss .rider-rank-mini {
+      color: inherit;
+      opacity: 0.75;
+    }
+
+    .rider-bib {
+      min-width: 52px;
+      max-width: 60%;
+      text-align: right;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .rider-colon {
+      flex-shrink: 0;
+      opacity: 0.75;
+    }
+
+    .rider-score {
+      flex-shrink: 0;
+      min-width: 48px;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .rider-badge {
+      flex-shrink: 0;
+      font-size: 0.9rem;
+      font-weight: 800;
+      padding: 5px 11px;
+      border-radius: 999px;
+      font-variant-numeric: tabular-nums;
+      display: none;
+      white-space: nowrap;
+    }
+
+    .rider-card.state-sprint .rider-badge {
+      display: inline-block;
+      background: #16a34a;
+      color: #ffffff;
+    }
+
+    .rider-card.state-gain .rider-badge {
+      display: inline-block;
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    .rider-card.state-loss .rider-badge {
+      display: inline-block;
+      background: #dc2626;
+      color: #ffffff;
+    }
+
+    /* 控制區（直式置底 / 橫式靠右） */
+    .board-controls {
+      flex-shrink: 0;
+      background: var(--surface);
+      border-top: 1.5px solid #cbd5e1;
+      padding: 10px 12px 12px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .ctrl-btn {
+      border: 2px solid var(--border-soft);
+      background: var(--surface);
+      color: var(--ink);
+      border-radius: 14px;
+      padding: 9px 6px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      min-height: 48px;
+      transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
+    }
+
+    .ctrl-btn:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+
+    .ctrl-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .ctrl-sub {
+      font-size: 0.7rem;
+      font-weight: 600;
+      opacity: 0.8;
+    }
+
+    .ctrl-btn.double-active {
+      background: var(--double-bg);
+      border-color: var(--double-border);
+      color: var(--double-ink);
+    }
+
+    .btn-board-confirm {
+      grid-column: 1 / -1;
+      min-height: 54px;
+      border: 2.5px solid var(--border);
+      border-radius: 18px;
+      background: var(--primary);
+      color: #ffffff;
+      font-size: 1.2rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.08s ease, background 0.15s ease;
+    }
+
+    .btn-board-confirm:active {
+      transform: scale(0.98);
+      background: var(--primary-hover);
+    }
+
+    .btn-board-confirm.has-pending {
+      background: #0f766e;
+      border-color: #115e59;
+    }
+
+    /* ================= 橫式與平板響應式調整 ================= */
+    @media (orientation: landscape) and (min-width: 580px) {
+      .setup-container {
+        gap: 16px;
+      }
+
+      .setup-box {
+        min-height: 70px;
+      }
+
+      .roster-list.multi-col {
+        max-width: 1000px;
+        grid-template-columns: repeat(2, 1fr);
+        column-gap: 20px;
+      }
+
+      .board-workspace {
+        flex-direction: row;
+      }
+
+      .board-controls {
+        width: 220px;
+        border-top: none;
+        border-left: 1.5px solid #cbd5e1;
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .controls-tools {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .ctrl-btn {
+        min-height: 50px;
+        font-size: 0.95rem;
+      }
+
+      .btn-board-confirm {
+        min-height: 70px;
+        font-size: 1.3rem;
+        margin-top: auto;
+      }
+    }
+
+    /* 寬螢幕平板橫式且人數較多時，自動改為雙欄排列減少捲動 */
+    @media (orientation: landscape) and (min-width: 900px) {
+      .cards-grid.two-col {
+        max-width: 1120px;
+        grid-template-columns: repeat(2, 1fr);
+        column-gap: 16px;
+      }
+    }
+
+    /* 直式時把 controls-tools 展平到 grid 中 */
+    @media not all and (orientation: landscape) and (min-width: 580px) {
+      .controls-tools {
+        display: contents;
+      }
+    }
+
+    /* ================= 匯出圖片預覽彈窗 ================= */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 1000;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 500px;
+      max-height: 92%;
+      background: var(--surface);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 700;
+      font-size: 1.02rem;
+    }
+
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      background: #f1f5f9;
+      text-align: center;
+    }
+
+    .modal-body img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 10px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+      background: #ffffff;
+    }
+
+    .modal-tip {
+      margin: 10px 0 0;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .modal-footer {
+      padding: 12px 14px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .btn-modal {
+      flex: 1;
+      min-height: 44px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      font-size: 0.98rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-modal.primary {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .btn-modal.secondary {
+      background: var(--surface);
+      color: var(--ink);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= 第一頁面：選擇項目與人數 ================= -->
+  <section id="page-1" class="page active" aria-label="設定項目與人數">
+    <div class="setup-container">
+      <div class="setup-box">
+        <label for="select-event">項目：</label>
+        <select id="select-event">
+          <option value="美式接力">美式接力</option>
+          <option value="領先計分(單項)">領先計分(單項)</option>
+          <option value="全能領先計分">全能領先計分</option>
+        </select>
+      </div>
+
+      <div class="setup-box">
+        <label for="select-count">人數：</label>
+        <select id="select-count"></select>
+      </div>
+
+      <button type="button" id="btn-p1-confirm" class="btn-confirm-main">確認</button>
+    </div>
+  </section>
+
+  <!-- ================= 第二頁面：輸入號碼或隊名（與起始分數） ================= -->
+  <section id="page-2" class="page" aria-label="輸入選手號碼或隊名">
+    <header class="top-header">
+      <button type="button" id="btn-p2-back" class="btn-ghost">← 返回</button>
+      <div id="p2-title" class="top-header-title"></div>
+      <div style="width: 60px;"></div>
+    </header>
+
+    <div class="roster-scroll">
+      <div id="roster-list" class="roster-list"></div>
+    </div>
+
+    <div class="bottom-bar">
+      <button type="button" id="btn-p2-confirm" class="btn-confirm-main">確認</button>
+    </div>
+  </section>
+
+  <!-- ================= 第三頁面：即時記分板 ================= -->
+  <section id="page-3" class="page" aria-label="即時記分板">
+    <header class="top-header">
+      <div class="header-left-group">
+        <div id="p3-title" class="top-header-title"></div>
+        <span id="sprint-counter" class="sprint-counter-badge">第 0 次衝刺</span>
+      </div>
+      <div style="display: flex; gap: 6px; flex-shrink: 0;">
+        <button type="button" id="btn-clear-pending" class="btn-ghost" style="display: none;">清除預選</button>
+        <button type="button" id="btn-reset-race" class="btn-ghost">新賽局</button>
+      </div>
+    </header>
+
+    <div class="board-workspace">
+      <div class="board-main">
+        <div class="status-strip">
+          <span class="status-hint">單擊: 5/3/2/1 ｜ 雙擊: +20(藍) ｜ 三擊: -20(紅) ｜ 再點取消</span>
+          <span id="status-pending" class="status-pending-count"></span>
+        </div>
+        <div class="cards-scroll">
+          <div id="cards-grid" class="cards-grid"></div>
+        </div>
+      </div>
+
+      <aside class="board-controls">
+        <div class="controls-tools">
+          <button type="button" id="btn-double" class="ctrl-btn">
+            <span>最後一圈雙倍</span>
+            <span id="double-sub" class="ctrl-sub">目前: 5·3·2·1</span>
+          </button>
+          <button type="button" id="btn-undo" class="ctrl-btn" disabled>
+            <span>復原上一步</span>
+            <span id="undo-sub" class="ctrl-sub">無紀錄</span>
+          </button>
+          <button type="button" id="btn-export" class="ctrl-btn">
+            <span>成績匯出</span>
+            <span class="ctrl-sub">輸出 PNG 圖片</span>
+          </button>
+        </div>
+        <button type="button" id="btn-p3-confirm" class="btn-board-confirm">確認</button>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ================= 成績匯出預覽彈窗 ================= -->
+  <div id="export-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-label="成績匯出預覽">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span>成績圖片預覽</span>
+        <button type="button" id="btn-modal-close" class="btn-ghost" style="padding: 4px 10px;">關閉</button>
+      </div>
+      <div class="modal-body">
+        <img id="export-preview-img" alt="成績排行圖片" />
+        <p class="modal-tip">iPhone / iPad 可直接點擊「分享 / 存至相簿」，或長按上方圖片儲存。</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btn-modal-share" class="btn-modal secondary" style="display: none;">分享 / 存至相簿</button>
+        <button type="button" id="btn-modal-download" class="btn-modal primary">下載 PNG</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = 'track_cycling_scorer_v1';
+      const MULTI_TAP_WINDOW = 420;
+      const ORDINALS = ['1st', '2nd', '3rd', '4th'];
+
+      let state = {
+        page: 1,
+        eventType: '領先計分(單項)',
+        count: 12,
+        draftRows: [],
+        riders: [],
+        sprintCount: 0,
+        history: [],
+        doubleFinal: false
+      };
+
+      let pendingSprints = [];
+      let pendingLaps = {};
+      let tapTracker = { id: null, count: 0, time: 0 };
+      let lastExportBlob = null;
+      let lastExportFilename = 'track-results.png';
+
+      const page1 = document.getElementById('page-1');
+      const page2 = document.getElementById('page-2');
+      const page3 = document.getElementById('page-3');
+
+      const selectEvent = document.getElementById('select-event');
+      const selectCount = document.getElementById('select-count');
+      const btnP1Confirm = document.getElementById('btn-p1-confirm');
+
+      const btnP2Back = document.getElementById('btn-p2-back');
+      const p2Title = document.getElementById('p2-title');
+      const rosterList = document.getElementById('roster-list');
+      const btnP2Confirm = document.getElementById('btn-p2-confirm');
+
+      const p3Title = document.getElementById('p3-title');
+      const sprintCounterEl = document.getElementById('sprint-counter');
+      const btnClearPending = document.getElementById('btn-clear-pending');
+      const btnResetRace = document.getElementById('btn-reset-race');
+      const statusPending = document.getElementById('status-pending');
+      const cardsGrid = document.getElementById('cards-grid');
+
+      const btnDouble = document.getElementById('btn-double');
+      const doubleSub = document.getElementById('double-sub');
+      const btnUndo = document.getElementById('btn-undo');
+      const undoSub = document.getElementById('undo-sub');
+      const btnExport = document.getElementById('btn-export');
+      const btnP3Confirm = document.getElementById('btn-p3-confirm');
+
+      const exportModal = document.getElementById('export-modal');
+      const exportPreviewImg = document.getElementById('export-preview-img');
+      const btnModalClose = document.getElementById('btn-modal-close');
+      const btnModalShare = document.getElementById('btn-modal-share');
+      const btnModalDownload = document.getElementById('btn-modal-download');
+
+      for (let i = 1; i <= 32; i++) {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = String(i);
+        selectCount.appendChild(opt);
+      }
+
+      function saveState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (e) {}
+      }
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') {
+            state = { ...state, ...parsed };
+            if (typeof state.sprintCount !== 'number') {
+              state.sprintCount = 0;
+            }
+          }
+        } catch (e) {}
+      }
+
+      function showPage(pageNum) {
+        state.page = pageNum;
+        page1.classList.toggle('active', pageNum === 1);
+        page2.classList.toggle('active', pageNum === 2);
+        page3.classList.toggle('active', pageNum === 3);
+
+        if (pageNum === 1) {
+          selectEvent.value = state.eventType;
+          selectCount.value = String(state.count);
+        } else if (pageNum === 2) {
+          renderPage2();
+        } else if (pageNum === 3) {
+          renderPage3();
+        }
+        saveState();
+      }
+
+      function renderPage2() {
+        const isOmnium = state.eventType === '全能領先計分';
+        p2Title.textContent = `${state.eventType}（${state.count} 人）`;
+        rosterList.classList.toggle('multi-col', state.count > 8);
+        rosterList.innerHTML = '';
+
+        while (state.draftRows.length < state.count) {
+          state.draftRows.push({ bib: '', score: '' });
+        }
+
+        for (let i = 0; i < state.count; i++) {
+          const rowData = state.draftRows[i];
+          const row = document.createElement('div');
+          row.className = 'roster-row';
+
+          const pill = document.createElement('div');
+          pill.className = 'roster-pill';
+
+          const idxSpan = document.createElement('span');
+          idxSpan.className = 'roster-idx';
+          idxSpan.textContent = `${i + 1}.`;
+
+          const bibInput = document.createElement('input');
+          bibInput.type = 'text';
+          bibInput.className = 'roster-bib-input';
+          bibInput.placeholder = '輸入號碼或隊名（如 12、台灣）';
+          bibInput.autocomplete = 'off';
+          bibInput.value = rowData.bib ?? '';
+          bibInput.dataset.index = String(i);
+          bibInput.dataset.field = 'bib';
+
+          bibInput.addEventListener('input', (e) => {
+            state.draftRows[i].bib = e.target.value;
+            saveState();
+          });
+
+          bibInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.isComposing) {
+              e.preventDefault();
+              focusNextInput(i, 'bib', isOmnium);
+            }
+          });
+
+          pill.appendChild(idxSpan);
+          pill.appendChild(bibInput);
+          row.appendChild(pill);
+
+          if (isOmnium) {
+            const scoreInput = document.createElement('input');
+            scoreInput.type = 'number';
+            scoreInput.inputMode = 'numeric';
+            scoreInput.className = 'roster-score-circle';
+            scoreInput.placeholder = '分數';
+            scoreInput.value = rowData.score ?? '';
+            scoreInput.dataset.index = String(i);
+            scoreInput.dataset.field = 'score';
+
+            scoreInput.addEventListener('input', (e) => {
+              state.draftRows[i].score = e.target.value;
+              saveState();
+            });
+
+            scoreInput.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                focusNextInput(i, 'score', isOmnium);
+              }
+            });
+
+            row.appendChild(scoreInput);
+          }
+
+          rosterList.appendChild(row);
+        }
+      }
+
+      function focusNextInput(index, field, isOmnium) {
+        if (isOmnium && field === 'bib') {
+          const scoreEl = rosterList.querySelector(`input[data-index="${index}"][data-field="score"]`);
+          if (scoreEl) scoreEl.focus();
+          return;
+        }
+        const nextBib = rosterList.querySelector(`input[data-index="${index + 1}"][data-field="bib"]`);
+        if (nextBib) {
+          nextBib.focus();
+        } else {
+          btnP2Confirm.focus();
+        }
+      }
+
+      function compareRiders(a, b) {
+        if (b.score !== a.score) return b.score - a.score;
+        const numA = Number(a.bib);
+        const numB = Number(b.bib);
+        if (!Number.isNaN(numA) && !Number.isNaN(numB) && a.bib.trim() !== '' && b.bib.trim() !== '') {
+          return numA - numB;
+        }
+        return String(a.bib).localeCompare(String(b.bib), 'zh-Hant', { numeric: true });
+      }
+
+      function getSprintPointsTable() {
+        return state.doubleFinal ? [10, 6, 4, 2] : [5, 3, 2, 1];
+      }
+
+      function clearAllPending() {
+        pendingSprints = [];
+        pendingLaps = {};
+        tapTracker = { id: null, count: 0, time: 0 };
+      }
+
+      function handleRiderTap(riderId) {
+        const now = Date.now();
+        const isRapidSame = (tapTracker.id === riderId) && ((now - tapTracker.time) <= MULTI_TAP_WINDOW);
+
+        if (isRapidSame) {
+          const nextCount = tapTracker.count + 1;
+
+          if (nextCount === 2) {
+            pendingSprints = pendingSprints.filter(id => id !== riderId);
+            pendingLaps[riderId] = 20;
+            tapTracker = { id: riderId, count: 2, time: now };
+          } else if (nextCount === 3) {
+            pendingSprints = pendingSprints.filter(id => id !== riderId);
+            pendingLaps[riderId] = -20;
+            tapTracker = { id: riderId, count: 3, time: now };
+          } else {
+            pendingSprints = pendingSprints.filter(id => id !== riderId);
+            delete pendingLaps[riderId];
+            tapTracker = { id: null, count: 0, time: 0 };
+          }
+        } else {
+          const inSprint = pendingSprints.includes(riderId);
+          const hasLap = Object.prototype.hasOwnProperty.call(pendingLaps, riderId);
+
+          if (inSprint || hasLap) {
+            pendingSprints = pendingSprints.filter(id => id !== riderId);
+            delete pendingLaps[riderId];
+            tapTracker = { id: riderId, count: 1, time: now };
+          } else {
+            if (pendingSprints.length < 4) {
+              pendingSprints.push(riderId);
+            }
+            tapTracker = { id: riderId, count: 1, time: now };
+          }
+        }
+
+        renderPage3();
+      }
+
+      function renderPage3(updatedIds = new Set(), sprintJustIncremented = false) {
+        p3Title.textContent = state.eventType;
+        state.riders.sort(compareRiders);
+
+        sprintCounterEl.textContent = `第 ${state.sprintCount} 次衝刺`;
+        sprintCounterEl.classList.toggle('has-sprints', state.sprintCount > 0);
+        if (sprintJustIncremented) {
+          sprintCounterEl.classList.remove('flash-sprint');
+          void sprintCounterEl.offsetWidth;
+          sprintCounterEl.classList.add('flash-sprint');
+        }
+
+        const sprintPts = getSprintPointsTable();
+        const lapCount = Object.keys(pendingLaps).length;
+        const totalPending = pendingSprints.length + lapCount;
+
+        btnClearPending.style.display = totalPending > 0 ? 'inline-block' : 'none';
+        btnP3Confirm.classList.toggle('has-pending', totalPending > 0);
+        btnP3Confirm.textContent = totalPending > 0 ? `確認 (${totalPending})` : '確認';
+
+        if (totalPending > 0) {
+          const parts = [];
+          if (pendingSprints.length > 0) parts.push(`衝刺 ${pendingSprints.length}/4`);
+          if (lapCount > 0) parts.push(`追/掉圈 ${lapCount}`);
+          statusPending.textContent = `已選：${parts.join('、')}`;
+        } else {
+          statusPending.textContent = `共 ${state.riders.length} 位`;
+        }
+
+        btnDouble.classList.toggle('double-active', state.doubleFinal);
+        doubleSub.textContent = state.doubleFinal ? '開啟: 10·6·4·2' : '目前: 5·3·2·1';
+
+        btnUndo.disabled = state.history.length === 0;
+        undoSub.textContent = state.history.length > 0 ? `可復原 ${state.history.length} 步` : '無紀錄';
+
+        cardsGrid.classList.toggle('two-col', state.riders.length > 10);
+        cardsGrid.innerHTML = '';
+
+        state.riders.forEach((rider, idx) => {
+          const card = document.createElement('div');
+          card.className = 'rider-card';
+
+          const sprintIndex = pendingSprints.indexOf(rider.id);
+          const lapDelta = pendingLaps[rider.id];
+          let badgeText = '';
+
+          if (lapDelta === 20) {
+            card.classList.add('state-gain');
+            badgeText = '+20';
+          } else if (lapDelta === -20) {
+            card.classList.add('state-loss');
+            badgeText = '-20';
+          } else if (sprintIndex !== -1) {
+            card.classList.add('state-sprint');
+            badgeText = `${ORDINALS[sprintIndex]} +${sprintPts[sprintIndex]}`;
+          }
+
+          if (updatedIds.has(rider.id)) {
+            card.classList.add('flash-updated');
+          }
+
+          const info = document.createElement('div');
+          info.className = 'rider-main-info';
+
+          const rankEl = document.createElement('span');
+          rankEl.className = 'rider-rank-mini';
+          rankEl.textContent = `${idx + 1}`;
+
+          const bibEl = document.createElement('span');
+          bibEl.className = 'rider-bib';
+          bibEl.textContent = rider.bib;
+
+          const colonEl = document.createElement('span');
+          colonEl.className = 'rider-colon';
+          colonEl.textContent = ':';
+
+          const scoreEl = document.createElement('span');
+          scoreEl.className = 'rider-score';
+          scoreEl.textContent = String(rider.score);
+
+          info.appendChild(rankEl);
+          info.appendChild(bibEl);
+          info.appendChild(colonEl);
+          info.appendChild(scoreEl);
+
+          const badge = document.createElement('span');
+          badge.className = 'rider-badge';
+          badge.textContent = badgeText;
+
+          card.appendChild(info);
+          card.appendChild(badge);
+
+          card.addEventListener('click', () => handleRiderTap(rider.id));
+          cardsGrid.appendChild(card);
+        });
+      }
+
+      function drawRoundedRect(ctx, x, y, w, h, r) {
+        const radius = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.arcTo(x + w, y, x + w, y + h, radius);
+        ctx.arcTo(x + w, y + h, x, y + h, radius);
+        ctx.arcTo(x, y + h, x, y, radius);
+        ctx.arcTo(x, y, x + w, y, radius);
+        ctx.closePath();
+      }
+
+      function generateResultsImage() {
+        const sorted = [...state.riders].sort(compareRiders);
+        const scale = 2;
+        const width = 620;
+        const padX = 28;
+        const padY = 28;
+        const rowH = 66;
+        const gap = 14;
+        const totalH = padY * 2 + sorted.length * rowH + Math.max(0, sorted.length - 1) * gap;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width * scale;
+        canvas.height = totalH * scale;
+
+        const ctx = canvas.getContext('2d');
+        ctx.scale(scale, scale);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, totalH);
+
+        const cardX = padX;
+        const cardW = width - padX * 2;
+        const fontStack = '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif';
+        ctx.font = `800 32px ${fontStack}`;
+
+        let maxBibWidth = 0;
+        sorted.forEach((rider) => {
+          const w = ctx.measureText(String(rider.bib)).width;
+          if (w > maxBibWidth) maxBibWidth = w;
+        });
+        const bibAreaWidth = Math.min(Math.max(Math.ceil(maxBibWidth), 120), 330);
+        const bibRightX = cardX + 32 + bibAreaWidth;
+        const colonX = bibRightX + 24;
+        const scoreLeftX = colonX + 24;
+        const maxScoreWidth = (cardX + cardW - 28) - scoreLeftX;
+
+        sorted.forEach((rider, i) => {
+          const y = padY + i * (rowH + gap);
+
+          drawRoundedRect(ctx, cardX, y, cardW, rowH, 26);
+          ctx.fillStyle = '#ffffff';
+          ctx.fill();
+          ctx.lineWidth = 2.6;
+          ctx.strokeStyle = '#0f172a';
+          ctx.stroke();
+
+          const centerY = y + rowH / 2 + 1;
+          ctx.fillStyle = '#0f172a';
+          ctx.font = `800 32px ${fontStack}`;
+          ctx.textBaseline = 'middle';
+
+          ctx.textAlign = 'right';
+          ctx.fillText(String(rider.bib), bibRightX, centerY, bibAreaWidth);
+
+          ctx.textAlign = 'center';
+          ctx.fillText(':', colonX, centerY - 2);
+
+          ctx.textAlign = 'left';
+          ctx.fillText(String(rider.score), scoreLeftX, centerY, maxScoreWidth);
+        });
+
+        const now = new Date();
+        const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+        lastExportFilename = `${state.eventType}_成績_${stamp}.png`;
+
+        const dataUrl = canvas.toDataURL('image/png');
+        exportPreviewImg.src = dataUrl;
+
+        canvas.toBlob((blob) => {
+          lastExportBlob = blob;
+          const canWebShare = Boolean(
+            blob &&
+            navigator.share &&
+            navigator.canShare &&
+            navigator.canShare({ files: [new File([blob], lastExportFilename, { type: 'image/png' })] })
+          );
+          btnModalShare.style.display = canWebShare ? 'inline-block' : 'none';
+          exportModal.classList.add('open');
+        }, 'image/png');
+      }
+
+      btnP1Confirm.addEventListener('click', () => {
+        state.eventType = selectEvent.value;
+        state.count = Number(selectCount.value);
+        showPage(2);
+      });
+
+      btnP2Back.addEventListener('click', () => {
+        showPage(1);
+      });
+
+      btnP2Confirm.addEventListener('click', () => {
+        const isOmnium = state.eventType === '全能領先計分';
+        const riders = [];
+        const seenBibs = new Set();
+
+        for (let i = 0; i < state.count; i++) {
+          const rawBib = String(state.draftRows[i]?.bib ?? '').trim();
+          if (!rawBib) {
+            alert(`請輸入第 ${i + 1} 列的號碼或隊名`);
+            const target = rosterList.querySelector(`input[data-index="${i}"][data-field="bib"]`);
+            if (target) target.focus();
+            return;
+          }
+          if (seenBibs.has(rawBib)) {
+            alert(`「${rawBib}」重複輸入，請確認後再試。`);
+            return;
+          }
+          seenBibs.add(rawBib);
+
+          let initScore = 0;
+          if (isOmnium) {
+            const rawScore = String(state.draftRows[i]?.score ?? '').trim();
+            initScore = rawScore === '' ? 0 : Number(rawScore);
+            if (Number.isNaN(initScore)) {
+              alert(`第 ${i + 1} 列的分數格式不正確`);
+              return;
+            }
+          }
+
+          riders.push({
+            id: i + 1,
+            bib: rawBib,
+            score: initScore
+          });
+        }
+
+        state.riders = riders;
+        state.sprintCount = 0;
+        state.history = [];
+        state.doubleFinal = false;
+        clearAllPending();
+        showPage(3);
+      });
+
+      btnClearPending.addEventListener('click', () => {
+        clearAllPending();
+        renderPage3();
+      });
+
+      btnResetRace.addEventListener('click', () => {
+        if (confirm('確定要結束目前賽局並返回第一頁重新設定嗎？')) {
+          clearAllPending();
+          state.riders = [];
+          state.sprintCount = 0;
+          state.history = [];
+          state.doubleFinal = false;
+          showPage(1);
+        }
+      });
+
+      btnDouble.addEventListener('click', () => {
+        state.doubleFinal = !state.doubleFinal;
+        saveState();
+        renderPage3();
+      });
+
+      btnUndo.addEventListener('click', () => {
+        if (state.history.length === 0) return;
+        const snapshot = state.history.pop();
+        if (Array.isArray(snapshot)) {
+          state.riders = snapshot;
+        } else if (snapshot) {
+          state.riders = snapshot.riders;
+          state.sprintCount = typeof snapshot.sprintCount === 'number' ? snapshot.sprintCount : state.sprintCount;
+        }
+        clearAllPending();
+        saveState();
+        renderPage3();
+      });
+
+      btnP3Confirm.addEventListener('click', () => {
+        const hasSprint = pendingSprints.length > 0;
+        const hasLap = Object.keys(pendingLaps).length > 0;
+        if (!hasSprint && !hasLap) return;
+
+        state.history.push({
+          riders: state.riders.map(r => ({ ...r })),
+          sprintCount: state.sprintCount
+        });
+        if (state.history.length > 50) state.history.shift();
+
+        const sprintPts = getSprintPointsTable();
+        const updatedIds = new Set();
+
+        state.riders.forEach((rider) => {
+          const sprintIdx = pendingSprints.indexOf(rider.id);
+          if (sprintIdx !== -1) {
+            rider.score += sprintPts[sprintIdx];
+            updatedIds.add(rider.id);
+          }
+          if (Object.prototype.hasOwnProperty.call(pendingLaps, rider.id)) {
+            rider.score += pendingLaps[rider.id];
+            updatedIds.add(rider.id);
+          }
+        });
+
+        if (hasSprint) {
+          state.sprintCount += 1;
+          if (state.doubleFinal) {
+            state.doubleFinal = false;
+          }
+        }
+
+        clearAllPending();
+        saveState();
+        renderPage3(updatedIds, hasSprint);
+      });
+
+      btnExport.addEventListener('click', generateResultsImage);
+
+      btnModalClose.addEventListener('click', () => {
+        exportModal.classList.remove('open');
+      });
+
+      exportModal.addEventListener('click', (e) => {
+        if (e.target === exportModal) {
+          exportModal.classList.remove('open');
+        }
+      });
+
+      btnModalShare.addEventListener('click', async () => {
+        if (!lastExportBlob) return;
+        try {
+          const file = new File([lastExportBlob], lastExportFilename, { type: 'image/png' });
+          await navigator.share({
+            files: [file],
+            title: `${state.eventType} 成績`
+          });
+        } catch (err) {}
+      });
+
+      btnModalDownload.addEventListener('click', () => {
+        if (!lastExportBlob) return;
+        const url = URL.createObjectURL(lastExportBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = lastExportFilename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      });
+
+      loadState();
+      showPage(state.page);
+    })();
+  </script>
+</body>
+</html>
