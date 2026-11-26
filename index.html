@@ -555,22 +555,6 @@
     .btn-red { background-color: var(--red); }
     .btn-grey { background-color: var(--grey-btn); }
 
-    /* 全寬即時訊號與版本診斷列 */
-    .signal-debug-bar {
-      font-size: 11.5px;
-      font-weight: 600;
-      color: #aeaeb2;
-      text-align: center;
-      background: #141416;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 6px;
-      padding: 4px 10px;
-      width: 100%;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
     /* ==========================================
        分段 4 秒全螢幕大字覆蓋層（穿透不擋操作）
        ========================================== */
@@ -754,11 +738,10 @@
       #page-stopwatch.active {
         display: grid;
         grid-template-columns: 1.25fr 1.1fr auto;
-        grid-template-rows: auto 1fr auto;
+        grid-template-rows: auto 1fr;
         grid-template-areas:
           "header timers controls"
-          "frozen laps   controls"
-          "debug  debug  debug";
+          "frozen laps   controls";
         align-items: stretch;
       }
 
@@ -793,10 +776,6 @@
         justify-content: center;
       }
 
-      .signal-debug-bar {
-        grid-area: debug;
-      }
-
       .modal-sheet { max-width: 640px; }
     }
 
@@ -825,13 +804,7 @@
       .spec-text { font-size: 17px; }
       .results-card { padding: 14px 16px; gap: 10px; font-size: 18px; }
 
-      #page-stopwatch.active {
-        grid-template-rows: auto 1fr;
-        grid-template-areas:
-          "header timers controls"
-          "frozen laps   controls";
-        gap: 6px 12px;
-      }
+      #page-stopwatch.active { gap: 6px 12px; }
       .sw-gear-title { font-size: 16px; }
       .sw-timers-row { padding: 4px 8px; gap: 8px; }
       .sw-timer-label { font-size: 12px; }
@@ -850,7 +823,6 @@
       .sw-controls { gap: 12px; padding: 0 2px; }
       .sw-circle-btn { width: 70px; height: 70px; }
       .sw-btn-main-text { font-size: 17px; }
-      .signal-debug-bar { display: none; }
       .modal-sheet { padding: 10px 12px calc(env(safe-area-inset-bottom, 8px) + 8px); }
     }
 
@@ -916,12 +888,6 @@
       .sw-circle-btn { width: 102px; height: 102px; }
       .sw-btn-main-text { font-size: 24px; }
       .sw-btn-key-hint { font-size: 11px; }
-
-      .signal-debug-bar {
-        font-size: 13.5px;
-        padding: 6px 14px;
-        max-width: 100%;
-      }
     }
   </style>
 </head>
@@ -980,7 +946,7 @@
       </div>
     </div>
 
-    <!-- 頁面 2：迴轉碼錶 (支援 R500 配置A + 滑鼠盲按 + 分段4秒全螢幕 v6) -->
+    <!-- 頁面 2：迴轉碼錶 -->
     <div id="page-stopwatch" class="page-view">
       <div class="sw-gear-header">
         <span id="sw-gear-display" class="sw-gear-title">50t x 13t · 700 X 20</span>
@@ -1037,8 +1003,6 @@
           <span class="sw-btn-key-hint">[大鍵 / 右鍵 / 滾輪]</span>
         </button>
       </div>
-
-      <div id="signal-debug-bar" class="signal-debug-bar">v6 | 📡 狀態：正在檢查離線快取...</div>
     </div>
 
     <!-- 頁面 3：分數即時記錄（獨立檔案內嵌，與碼錶操作完全隔離） -->
@@ -1102,8 +1066,7 @@
     // ==========================================
     // 1. 共同資料清單設定
     // ==========================================
-    const APP_VERSION = "v6";
-    const LAP_FULLSCREEN_MS = 4000; // 分段全螢幕大字顯示毫秒數 (4 秒)
+    const LAP_FULLSCREEN_MS = 4000;
     const ITEM_HEIGHT = 34;
 
     const chainringList = Array.from({ length: 75 - 45 + 1 }, (_, i) => 45 + i);
@@ -1160,7 +1123,6 @@
     window.addEventListener("resize", syncAllWheelsScroll);
     window.addEventListener("orientationchange", () => setTimeout(syncAllWheelsScroll, 120));
 
-    // 清除按鈕焦點，防止 iPad 外接藍牙簡報筆/鍵盤誤觸焦點元件
     function clearFocus() {
       if (document.activeElement && typeof document.activeElement.blur === "function") {
         document.activeElement.blur();
@@ -1417,24 +1379,6 @@
     const swStartStopText     = document.getElementById("sw-start-stop-text");
     const swLapResetBtn       = document.getElementById("sw-lap-reset-btn");
     const swLapResetText      = document.getElementById("sw-lap-reset-text");
-    const signalDebugBar      = document.getElementById("signal-debug-bar");
-
-    const recentSignals = [];
-    let lastSignalLogMs = 0;
-
-    function logSignal(msg, isStatusOnly = false) {
-      if (!signalDebugBar) return;
-      if (isStatusOnly) {
-        signalDebugBar.textContent = `${APP_VERSION} | 📡 ${msg}`;
-        return;
-      }
-      const now = performance.now();
-      const gap = lastSignalLogMs ? `+${Math.round(now - lastSignalLogMs)}ms` : "首發";
-      lastSignalLogMs = now;
-      recentSignals.unshift(`[${gap}] ${msg}`);
-      if (recentSignals.length > 2) recentSignals.pop();
-      signalDebugBar.textContent = `${APP_VERSION} | 📡 ${recentSignals.join("  ||  ")}`;
-    }
 
     function updateSwHeader() {
       swGearDisplay.textContent = `${swChainring}t x ${swSprocket}t · ${tireSpecs[swTireIndex].name}`;
@@ -1489,7 +1433,6 @@
       return sec.toFixed(2).padStart(5, "0");
     }
 
-    // 擷取個位數與小數第一位（如 14.96 -> 4.9）
     function formatShortLap(sec) {
       const centi = Math.round(sec * 100);
       const onesAndTenths = Math.floor((centi % 1000) / 10);
@@ -1555,7 +1498,6 @@
       lapStartMs = nowMs;
       renderLapsList();
 
-      // 計時中按下「分段」時，將個位數+小數第一位放大成全螢幕 4 秒
       if (!isFinalStop) {
         showLapFullscreen(shortText, lapNumber, cumDist);
       }
@@ -1681,12 +1623,9 @@
       );
     }
 
-    function triggerStartStopSafe(sourceLabel, delayMs = 0) {
+    function triggerStartStopSafe(delayMs = 0) {
       const pressTimeMs = performance.now();
-      if (pressTimeMs - lastAnyActionMs < 450) {
-        logSignal(`(已攔截) ${sourceLabel}`);
-        return;
-      }
+      if (pressTimeMs - lastAnyActionMs < 450) return;
 
       cancelPendingStartStop();
 
@@ -1694,7 +1633,6 @@
         pendingStartStopTimer = null;
         if (performance.now() - lastAnyActionMs < 450) return;
         lastAnyActionMs = performance.now();
-        logSignal(`${sourceLabel} ➔ 開始/停止`);
         flashButtonVisual(swStartStopBtn);
         handleStartStopAction(pressTimeMs);
       };
@@ -1706,15 +1644,11 @@
       }
     }
 
-    function triggerLapResetSafe(sourceLabel) {
+    function triggerLapResetSafe() {
       cancelPendingStartStop();
       const now = performance.now();
-      if (now - lastAnyActionMs < 350) {
-        logSignal(`(已攔截) ${sourceLabel}`);
-        return;
-      }
+      if (now - lastAnyActionMs < 350) return;
       lastAnyActionMs = now;
-      logSignal(`${sourceLabel} ➔ 分段/歸零`);
       flashButtonVisual(swLapResetBtn);
       handleLapResetAction(now);
     }
@@ -1726,7 +1660,7 @@
       e.stopPropagation();
       e.stopImmediatePropagation();
       clearFocus();
-      triggerLapResetSafe(`點分段鈕(${e.pointerType})`);
+      triggerLapResetSafe();
     });
 
     swStartStopBtn.addEventListener("pointerdown", (e) => {
@@ -1735,7 +1669,7 @@
       e.stopPropagation();
       e.stopImmediatePropagation();
       clearFocus();
-      triggerStartStopSafe(`點開始鈕(${e.pointerType})`, 0);
+      triggerStartStopSafe(0);
     });
 
     // B) Logitech R500 / R500s 簡報筆 (配置 A) & 鍵盤監聽
@@ -1767,21 +1701,17 @@
       if (isLapKey) {
         e.preventDefault();
         e.stopPropagation();
-        triggerLapResetSafe(`R500大鍵/鍵盤(${key || code || kc})`);
+        triggerLapResetSafe();
       } else if (isStartStopKey) {
         e.preventDefault();
         e.stopPropagation();
-        triggerStartStopSafe(`R500小鍵/鍵盤(${key || code || kc})`, 0);
-      } else {
-        logSignal(`未對應鍵 [${key || "?"} / ${code || "?"} / kc=${kc}]`);
+        triggerStartStopSafe(0);
       }
     }, true);
 
     // C) 全畫面滑鼠按鍵監聽（盲按常駐開啟）
     window.addEventListener("pointerdown", (e) => {
       if (!canTriggerRemoteControl()) return;
-
-      const coord = `${Math.round(e.clientX)},${Math.round(e.clientY)}`;
 
       if (
         e.button === 4 ||
@@ -1792,14 +1722,14 @@
       ) {
         e.preventDefault();
         e.stopPropagation();
-        triggerLapResetSafe(`滑鼠btn=${e.button}/mask=${e.buttons}`);
+        triggerLapResetSafe();
         return;
       }
 
       if (e.button === 3 || (e.buttons & 8) === 8) {
         e.preventDefault();
         e.stopPropagation();
-        triggerStartStopSafe(`側鍵4(btn=${e.button})`, 0);
+        triggerStartStopSafe(0);
         return;
       }
 
@@ -1810,13 +1740,13 @@
       if (e.target.closest("#sw-lap-reset-btn") || isPointNearLapButton(e.clientX, e.clientY)) {
         e.preventDefault();
         e.stopPropagation();
-        triggerLapResetSafe(`分段區btn=0@(${coord})`);
+        triggerLapResetSafe();
         return;
       }
 
       if (e.button === 0) {
         e.preventDefault();
-        triggerStartStopSafe(`空白左鍵btn=0@(${coord})`, 120);
+        triggerStartStopSafe(120);
       }
     });
 
@@ -1826,7 +1756,7 @@
       if (e.target.closest(".top-bar")) return;
       e.preventDefault();
       e.stopPropagation();
-      triggerLapResetSafe("右鍵選單");
+      triggerLapResetSafe();
     }, true);
 
     // E) 滑鼠滾輪撥動 -> 分段
@@ -1838,7 +1768,7 @@
       const gap = now - lastWheelRawMs;
       lastWheelRawMs = now;
       if (gap < 180) return;
-      triggerLapResetSafe("滾輪");
+      triggerLapResetSafe();
     }, { passive: false });
 
     ["mouseup", "auxclick"].forEach((evtName) => {
@@ -1855,27 +1785,20 @@
     updateSwHeader();
 
     // ==========================================
-    // 8. Service Worker 離線快取註冊 (v6)
+    // 8. Service Worker 離線快取註冊 (v7)
     // ==========================================
     async function initOfflineSupport() {
-      if (!("serviceWorker" in navigator)) {
-        logSignal("⚠️ 此瀏覽器不支援離線快取", true);
-        return;
-      }
+      if (!("serviceWorker" in navigator)) return;
       try {
         const reg = await navigator.serviceWorker.register("./sw.js", { scope: "./" });
         await reg.update();
         await navigator.serviceWorker.ready;
 
         if ("caches" in window) {
-          const cache = await caches.open("ratios-sw-cache-v6");
+          const cache = await caches.open("ratios-sw-cache-v7");
           await cache.addAll([window.location.href, "./", "./index.html", "./scorer.html"]).catch(() => {});
         }
-
-        logSignal("✅ 離線快取與 R500 配置A 已就緒", true);
-      } catch (err) {
-        logSignal("⚠️ 離線未啟用：請確認 GitHub 已建立 sw.js", true);
-      }
+      } catch (_) {}
     }
 
     window.addEventListener("load", initOfflineSupport);
