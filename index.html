@@ -54,25 +54,26 @@
       gap: 10px;
     }
 
-    /* 頂部導覽列 */
+    /* 頂部導覽列（支援 3 個分頁且不換行） */
     .top-bar {
-      display: grid;
-      grid-template-columns: 64px 1fr 64px;
+      display: flex;
       align-items: center;
-      min-height: 34px;
+      justify-content: center;
+      gap: 8px;
+      min-height: 36px;
       flex-shrink: 0;
     }
 
     .seg-control {
-      grid-column: 2;
+      flex: 1;
       display: flex;
       background: #1c1c1e;
       border-radius: 9px;
       padding: 3px;
       border: 1px solid rgba(255, 255, 255, 0.15);
-      max-width: 320px;
+      max-width: 440px;
       width: 100%;
-      justify-self: center;
+      min-width: 0;
     }
 
     .seg-btn {
@@ -80,12 +81,17 @@
       background: transparent;
       border: none;
       color: #8e8e93;
-      font-size: 14px;
+      font-size: clamp(12px, 3.3vw, 14px);
       font-weight: 700;
-      padding: 6px 10px;
+      padding: 6px 4px;
       border-radius: 7px;
       cursor: pointer;
+      white-space: nowrap;
       transition: all 0.15s ease;
+    }
+
+    #tab-scorer {
+      flex: 1.25;
     }
 
     .seg-btn.active {
@@ -94,16 +100,16 @@
     }
 
     .sw-settings-btn {
-      grid-column: 3;
-      justify-self: end;
+      flex-shrink: 0;
       background: none;
       border: 1px solid rgba(255, 255, 255, 0.35);
       border-radius: 8px;
       color: var(--cyan);
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 700;
       padding: 5px 10px;
       cursor: pointer;
+      white-space: nowrap;
       display: none;
     }
 
@@ -120,6 +126,21 @@
 
     .page-view.active {
       display: flex;
+    }
+
+    /* 第三頁：分數即時記錄內嵌容器 */
+    #page-scorer {
+      flex: 1;
+      min-height: 0;
+    }
+
+    .scorer-iframe {
+      width: 100%;
+      height: 100%;
+      flex: 1;
+      border: none;
+      border-radius: 12px;
+      background: #ffffff;
     }
 
     /* 第一頁：齒比計算器 */
@@ -714,6 +735,8 @@
         gap: 18px;
       }
 
+      .seg-control { max-width: 520px; }
+      .seg-btn { font-size: 16px; padding: 8px 12px; }
       .sw-frozen-lap-time { font-size: 84px; }
       .sw-circle-btn { width: 96px; height: 96px; }
     }
@@ -794,7 +817,7 @@
       }
 
       .top-bar { min-height: 30px; }
-      .seg-btn { padding: 4px 10px; font-size: 13px; }
+      .seg-btn { padding: 4px 8px; font-size: 13px; }
 
       #page-calc.active { gap: 16px; }
       .calc-right-panel { gap: 10px; }
@@ -848,7 +871,7 @@
       }
 
       .top-bar { min-height: 42px; }
-      .seg-control { max-width: 380px; }
+      .seg-control { max-width: 560px; }
       .seg-btn { font-size: 16px; padding: 8px 14px; }
       .sw-settings-btn { font-size: 16px; padding: 7px 14px; }
 
@@ -910,6 +933,7 @@
       <div class="seg-control">
         <button id="tab-calc" class="seg-btn active" type="button">齒比計算</button>
         <button id="tab-sw" class="seg-btn" type="button">迴轉碼錶</button>
+        <button id="tab-scorer" class="seg-btn" type="button">分數即時記錄</button>
       </div>
       <button id="open-sw-settings-btn" class="sw-settings-btn" type="button">設定</button>
     </div>
@@ -956,7 +980,7 @@
       </div>
     </div>
 
-    <!-- 頁面 2：迴轉碼錶 (支援 R500 配置A + 滑鼠盲按 + 分段4秒全螢幕 v5) -->
+    <!-- 頁面 2：迴轉碼錶 (支援 R500 配置A + 滑鼠盲按 + 分段4秒全螢幕 v6) -->
     <div id="page-stopwatch" class="page-view">
       <div class="sw-gear-header">
         <span id="sw-gear-display" class="sw-gear-title">50t x 13t · 700 X 20</span>
@@ -1014,7 +1038,17 @@
         </button>
       </div>
 
-      <div id="signal-debug-bar" class="signal-debug-bar">v5 | 📡 狀態：正在檢查離線快取...</div>
+      <div id="signal-debug-bar" class="signal-debug-bar">v6 | 📡 狀態：正在檢查離線快取...</div>
+    </div>
+
+    <!-- 頁面 3：分數即時記錄（獨立檔案內嵌，與碼錶操作完全隔離） -->
+    <div id="page-scorer" class="page-view">
+      <iframe
+        id="scorer-frame"
+        class="scorer-iframe"
+        src="./scorer.html"
+        title="分數即時記錄"
+      ></iframe>
     </div>
   </div>
 
@@ -1068,7 +1102,7 @@
     // ==========================================
     // 1. 共同資料清單設定
     // ==========================================
-    const APP_VERSION = "v5";
+    const APP_VERSION = "v6";
     const LAP_FULLSCREEN_MS = 4000; // 分段全螢幕大字顯示毫秒數 (4 秒)
     const ITEM_HEIGHT = 34;
 
@@ -1136,10 +1170,12 @@
     // ==========================================
     // 2. 頁面切換與分段 4 秒全螢幕控制
     // ==========================================
-    const tabCalcBtn = document.getElementById("tab-calc");
-    const tabSwBtn   = document.getElementById("tab-sw");
-    const pageCalc   = document.getElementById("page-calc");
-    const pageSw     = document.getElementById("page-stopwatch");
+    const tabCalcBtn   = document.getElementById("tab-calc");
+    const tabSwBtn     = document.getElementById("tab-sw");
+    const tabScorerBtn = document.getElementById("tab-scorer");
+    const pageCalc     = document.getElementById("page-calc");
+    const pageSw       = document.getElementById("page-stopwatch");
+    const pageScorer   = document.getElementById("page-scorer");
     const openSwSettingsBtn = document.getElementById("open-sw-settings-btn");
 
     const lapFsOverlay     = document.getElementById("lap-fullscreen-overlay");
@@ -1178,25 +1214,28 @@
       }, LAP_FULLSCREEN_MS);
     }
 
-    tabCalcBtn.addEventListener("click", () => {
+    function switchTab(target) {
       clearFocus();
-      hideLapFullscreen();
-      tabCalcBtn.classList.add("active");
-      tabSwBtn.classList.remove("active");
-      pageCalc.classList.add("active");
-      pageSw.classList.remove("active");
-      openSwSettingsBtn.classList.remove("visible");
-      syncAllWheelsScroll();
-    });
+      if (target !== "sw") hideLapFullscreen();
 
-    tabSwBtn.addEventListener("click", () => {
-      clearFocus();
-      tabSwBtn.classList.add("active");
-      tabCalcBtn.classList.remove("active");
-      pageSw.classList.add("active");
-      pageCalc.classList.remove("active");
-      openSwSettingsBtn.classList.add("visible");
-    });
+      tabCalcBtn.classList.toggle("active", target === "calc");
+      tabSwBtn.classList.toggle("active", target === "sw");
+      tabScorerBtn.classList.toggle("active", target === "scorer");
+
+      pageCalc.classList.toggle("active", target === "calc");
+      pageSw.classList.toggle("active", target === "sw");
+      pageScorer.classList.toggle("active", target === "scorer");
+
+      openSwSettingsBtn.classList.toggle("visible", target === "sw");
+
+      if (target === "calc") {
+        syncAllWheelsScroll();
+      }
+    }
+
+    tabCalcBtn.addEventListener("click", () => switchTab("calc"));
+    tabSwBtn.addEventListener("click", () => switchTab("sw"));
+    tabScorerBtn.addEventListener("click", () => switchTab("scorer"));
 
     // ==========================================
     // 3. 第一頁：齒比計算器
@@ -1700,11 +1739,10 @@
     });
 
     // B) Logitech R500 / R500s 簡報筆 (配置 A) & 鍵盤監聽
-    // 配置 A：中間大鍵(前進) = 分段/歸零；下方小鍵(後退) = 開始/停止
     const LAP_RESET_KEYS      = new Set(["KeyD", "ArrowRight", "Right", "ArrowDown", "Down", "PageDown"]);
-    const LAP_RESET_KEYCODES  = new Set([39, 40, 34]); // Right, Down, PageDown
+    const LAP_RESET_KEYCODES  = new Set([39, 40, 34]);
     const START_STOP_KEYS     = new Set(["KeyS", "ArrowLeft", "Left", "ArrowUp", "Up", "PageUp"]);
-    const START_STOP_KEYCODES = new Set([37, 38, 33]); // Left, Up, PageUp
+    const START_STOP_KEYCODES = new Set([37, 38, 33]);
 
     window.addEventListener("keydown", (e) => {
       if (e.repeat || !canTriggerRemoteControl()) return;
@@ -1735,7 +1773,6 @@
         e.stopPropagation();
         triggerStartStopSafe(`R500小鍵/鍵盤(${key || code || kc})`, 0);
       } else {
-        // 若按到其他未對應的按鍵，顯示於底部診斷列方便確認實際鍵碼
         logSignal(`未對應鍵 [${key || "?"} / ${code || "?"} / kc=${kc}]`);
       }
     }, true);
@@ -1818,7 +1855,7 @@
     updateSwHeader();
 
     // ==========================================
-    // 8. Service Worker 離線快取註冊 (v5)
+    // 8. Service Worker 離線快取註冊 (v6)
     // ==========================================
     async function initOfflineSupport() {
       if (!("serviceWorker" in navigator)) {
@@ -1831,8 +1868,8 @@
         await navigator.serviceWorker.ready;
 
         if ("caches" in window) {
-          const cache = await caches.open("ratios-sw-cache-v5");
-          await cache.addAll([window.location.href, "./", "./index.html"]).catch(() => {});
+          const cache = await caches.open("ratios-sw-cache-v6");
+          await cache.addAll([window.location.href, "./", "./index.html", "./scorer.html"]).catch(() => {});
         }
 
         logSignal("✅ 離線快取與 R500 配置A 已就緒", true);
