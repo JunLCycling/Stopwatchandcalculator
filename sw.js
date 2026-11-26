@@ -1,7 +1,7 @@
-const CACHE_NAME = "ratios-sw-cache-v5";
-const CORE_ASSETS = ["./", "./index.html"];
+const CACHE_NAME = "ratios-sw-cache-v6";
+const CORE_ASSETS = ["./", "./index.html", "./scorer.html"];
 
-// 1. 安裝時強制從伺服器抓取最新版存入 iPad 本機快取
+// 1. 安裝時強制從伺服器抓取最新版存入本機快取
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
@@ -17,7 +17,7 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-// 2. 啟動時清除舊版 (v1~v4) 快取並立即接管頁面
+// 2. 啟動時清除舊版 (v1~v5) 快取並立即接管頁面
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -48,6 +48,11 @@ self.addEventListener("fetch", (event) => {
         const cache = await caches.open(CACHE_NAME);
         const matched = await cache.match(event.request, { ignoreSearch: true });
         if (matched) return matched;
+
+        const reqUrl = new URL(event.request.url);
+        if (reqUrl.pathname.endsWith("/scorer.html")) {
+          return await cache.match("./scorer.html", { ignoreSearch: true });
+        }
 
         if (
           event.request.mode === "navigate" ||
