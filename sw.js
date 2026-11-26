@@ -1,4 +1,4 @@
-const CACHE_NAME = "ratios-sw-cache-v6";
+const CACHE_NAME = "ratios-sw-cache-v7";
 const CORE_ASSETS = ["./", "./index.html", "./scorer.html"];
 
 // 1. 安裝時強制從伺服器抓取最新版存入本機快取
